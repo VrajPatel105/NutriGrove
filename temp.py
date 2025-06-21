@@ -21,6 +21,9 @@ temp = driver.find_element(By.XPATH, "/html/body/div/div/div/main/div[2]/div/div
 text = temp.text
 print(text)
 
+with open("output.txt", "w", encoding="utf-8") as file:
+    file.write(text)
+
 print("Text saved to output.txt successfully!")
 
 time.sleep(5)
