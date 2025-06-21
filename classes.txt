@@ -1,9 +1,0 @@
-// Finding item, portion, calories
-data-label= "Item" || "Portion" || "Calories"
-aria-colindex= "1" || "2" || "3"
-
-// Nutritional Info and list is within div.
-class="modal-body"
-
-// Finding Food Categories. Image within represents if vegan, gluten free, etc.
-class="col category-items_iconWrapper_1Erkt"
