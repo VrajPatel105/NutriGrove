@@ -61,7 +61,7 @@ class Scraper:
                 print(f"No more tables found or error with table {counter}: {e}")
                 break
         print(f"\nTotal items processed: {len(all_food_items)}")
-        with open('data/food_items_breakfast.json', 'w', encoding='utf-8') as f:
+        with open('backend/app/data/scraped_data/food_items_breakfast.json', 'w', encoding='utf-8') as f:
             json.dump(all_food_items, f, indent=2, ensure_ascii=False)
         print("Data saved to:")
         print("- food_items_breakfast.json (structured data)")
@@ -115,7 +115,7 @@ class Scraper:
                 print(f"No more tables found or error with table {counter}: {e}")
                 break
         print(f"\nTotal items processed: {len(all_food_items)}")
-        with open('data/food_items_dinner.json', 'w', encoding='utf-8') as f:
+        with open('backend/app/data/scraped_data/food_items_dinner.json', 'w', encoding='utf-8') as f:
             json.dump(all_food_items, f, indent=2, ensure_ascii=False)
         print("Data saved to:")
         print("- food_items_dinner.json (structured data)")
@@ -169,7 +169,7 @@ class Scraper:
                 print(f"No more tables found or error with table {counter}: {e}")
                 break
         print(f"\nTotal items processed: {len(all_food_items)}")
-        with open('data/food_items_brunch.json', 'w', encoding='utf-8') as f:
+        with open('backend/app/data/scraped_data/food_items_brunch.json', 'w', encoding='utf-8') as f:
             json.dump(all_food_items, f, indent=2, ensure_ascii=False)
         print("Data saved to:")
         print("- food_items_brunch.json (structured data)")
@@ -223,7 +223,7 @@ class Scraper:
                 print(f"No more tables found or error with table {counter}: {e}")
                 break
         print(f"\nTotal items processed: {len(all_food_items)}")
-        with open('data/food_items_lunch.json', 'w', encoding='utf-8') as f:
+        with open('backend/app/data/scraped_data/food_items_lunch.json', 'w', encoding='utf-8') as f:
             json.dump(all_food_items, f, indent=2, ensure_ascii=False)
         print("Data saved to:")
         print("- food_items_lunch.json (structured data)")
