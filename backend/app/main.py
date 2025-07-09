@@ -1,5 +1,6 @@
 from scraper import Scraper  # Import your Scraper class
 from datetime import datetime
+from data.clean_data import clean_data
 
 # Option 1: Use today's date
 today_date = datetime.today().strftime('%Y-%m-%d')
@@ -13,6 +14,8 @@ try:
     scraper.fetch_dinner()
     print("All data scraped successfully!")
     # cleaning the scraped data
+    # clean_data.clean_data_func()
+    # print("All data cleaned")
     
 finally:
     scraper.close()
