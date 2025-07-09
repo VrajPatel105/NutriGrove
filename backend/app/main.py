@@ -14,8 +14,8 @@ try:
     scraper.fetch_dinner()
     print("All data scraped successfully!")
     # cleaning the scraped data
-    # clean_data.clean_data_func()
-    # print("All data cleaned")
+    clean_data.clean_data_func()
+    print("All data cleaned")
     
 finally:
     scraper.close()
