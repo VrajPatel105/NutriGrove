@@ -1,86 +1,181 @@
-import numpy as np
 import pandas as pd
 import json
 import re
+import os
 
-class clean_data:
-
-    def clean_data_func():
-
-        list = ["backend/app/data/scraped_data/food_items_breakfast.json","backend/app/data/scraped_data/food_items_lunch.json","backend/app/data/scraped_data/food_items_dinner.json"]
-
-        for meals in list:
-            # Load the data
-            data = pd.read_json(meals)
-            df = data.copy()
-
-            # Your existing cleaning steps
-            df['nutritional_info'] = df["nutritional_info"].str.replace("\n"," ").str.replace("Close","")
-            df['nutritional_info'] = df["nutritional_info"].str.replace("Daily Value*","")
-            df['nutritional_info'] = df['nutritional_info'].str.replace('* The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice. ','')
-            df['nutritional_info'] = df['nutritional_info'].str.replace("^","")
-
-
-            def remove_capitalized_food_name(text):
-                # Split by spaces and remove the first all-caps words
-                words = text.split()
-                # Find where the capitalized food name ends (usually 1-3 words)
-                start_index = 0
-                for i, word in enumerate(words):
-                    if word.isupper() and not any(char.isdigit() for char in word):
-                        start_index = i + 1
+class FoodDataCleaner:
+    
+    @staticmethod
+    def extract_nutrition_info(text):
+        """Extract structured nutrition information from messy text"""
+        
+        # Initialize nutrition dictionary
+        nutrition = {}
+        
+        # Clean the text first
+        text = text.replace('\n', ' ').replace('Close', '').strip()
+        text = re.sub(r'\s+', ' ', text)  # Multiple spaces to single space
+        
+        # Extract serving information
+        serving_match = re.search(r'Serving size:\s*([^%\n]+?)(?=Calories|$)', text, re.IGNORECASE)
+        if serving_match:
+            nutrition['serving_size'] = serving_match.group(1).strip()
+        
+        # Extract calories
+        calories_match = re.search(r'Calories\s+(\d+)', text)
+        if calories_match:
+            nutrition['calories'] = int(calories_match.group(1))
+        
+        # Define nutrient patterns with their units
+        nutrient_patterns = {
+            'protein_g': r'Protein \(g\)\s+([\d.]+|less than \d+ gram)',
+            'carbs_g': r'Total Carbohydrates \(g\)\s+([\d.]+|less than \d+ gram)', 
+            'sugar_g': r'Sugar \(g\)\s+([\d.]+|less than \d+ gram|\d+)',
+            'total_fat_g': r'Total Fat \(g\)\s+([\d.]+)',
+            'saturated_fat_g': r'Saturated Fat \(g\)\s+([\d.]+)',
+            'trans_fat_g': r'Trans Fat \(g\)\s+([\d.]+|-)',
+            'cholesterol_mg': r'Cholesterol \(mg\)\s+([\d.]+|less than \d+ milligrams)',
+            'dietary_fiber_g': r'Dietary Fiber \(g\)\s+([\d.]+|less than \d+ gram)',
+            'sodium_mg': r'Sodium \(mg\)\s+([\d.]+)',
+            'potassium_mg': r'Potassium \(mg\)\s+([\d.]+|-)',
+            'calcium_mg': r'Calcium \(mg\)\s+([\d.]+)',
+            'iron_mg': r'Iron \(mg\)\s+([\d.]+)',
+            'vitamin_d_iu': r'Vitamin D \(IU\)\s+([\d.]+\+?|0\+?|-)',
+            'vitamin_c_mg': r'Vitamin C \(mg\)\s+([\d.]+\+?|0\+?|-)',
+            'vitamin_a_re': r'Vitamin A \(RE\)\s+([\d.]+|-)'
+        }
+        
+        # Extract each nutrient
+        for nutrient, pattern in nutrient_patterns.items():
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                value = match.group(1).strip()
+                
+                # Clean up the value
+                if value == '-':
+                    nutrition[nutrient] = 0
+                elif 'less than' in value.lower():
+                    # Extract number from "less than X gram/milligrams"
+                    num_match = re.search(r'(\d+)', value)
+                    if num_match:
+                        nutrition[nutrient] = f"<{num_match.group(1)}"
                     else:
-                        break
-                # Return text without the capitalized food name
-                return ' '.join(words[start_index:])
-
-            df['nutritional_info'] = df['nutritional_info'].apply(remove_capitalized_food_name)
-
-            df['nutritional_info'] = df['nutritional_info'].str.replace(r'\s+', ' ', regex=True)  # Multiple spaces to single space
-            df['nutritional_info'] = df['nutritional_info'].str.replace('% ', '', regex=False)  # Remove remaining %
-            df['nutritional_info'] = df['nutritional_info'].str.strip()  # Remove leading/trailing spaces
-
-            def format_with_pipes(text):
+                        nutrition[nutrient] = "<1"
+                elif '+' in value:
+                    nutrition[nutrient] = float(value.replace('+', ''))
+                else:
+                    try:
+                        nutrition[nutrient] = float(value)
+                    except ValueError:
+                        nutrition[nutrient] = value
+        
+        # Extract allergens
+        allergen_match = re.search(r'Allergens:\s*([^*\n]+?)(?=Ingredients|$)', text, re.IGNORECASE)
+        if allergen_match:
+            allergens_text = allergen_match.group(1).strip()
+            if allergens_text and allergens_text != '':
+                nutrition['allergens'] = [allergen.strip() for allergen in allergens_text.split(',') if allergen.strip()]
+            else:
+                nutrition['allergens'] = []
+        else:
+            nutrition['allergens'] = []
+        
+        # Extract ingredients
+        ingredients_match = re.search(r'Ingredients:\s*([^*\n]+?)(?=\*|$)', text, re.IGNORECASE)
+        if ingredients_match:
+            ingredients_text = ingredients_match.group(1).strip()
+            # Remove the ^ symbol that appears after ingredients
+            ingredients_text = re.sub(r'\^', '', ingredients_text)
+            nutrition['ingredients'] = ingredients_text
+        else:
+            nutrition['ingredients'] = ""
+        
+        return nutrition
+    
+    @staticmethod
+    def clean_food_data():
+        """Main function to clean all food data files"""
+        
+        # Create output directory
+        os.makedirs('backend/app/data/cleaned_data', exist_ok=True)
+        
+        # File paths with meal types
+        file_configs = [
+            {"path": "backend/app/data/scraped_data/food_items_breakfast.json", "meal_type": "breakfast"},
+            {"path": "backend/app/data/scraped_data/food_items_lunch.json", "meal_type": "lunch"}, 
+            {"path": "backend/app/data/scraped_data/food_items_dinner.json", "meal_type": "dinner"}
+        ]
+        
+        all_cleaned_data = []
+        
+        for config in file_configs:
+            file_path = config["path"]
+            meal_type = config["meal_type"]
+            
+            try:
+                # Load the JSON data
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
                 
-                patterns = [
-                    (r'Calories (\d+) kcal', r'Calories: \1 kcal'),
-                    (r'Protein \(g\) ([\d.]+) g', r'Protein: \1 g'),
-                    (r'Total Carbohydrates \(g\) ([\d.]+|less than \d+ gram) g', r'Total Carbohydrates: \1 g'),
-                    (r'Sugar \(g\) ([\d.]+|less than \d+ gram) g', r'Sugar: \1 g'),
-                    (r'Total Fat \(g\) ([\d.]+) g', r'Total Fat: \1 g'),
-                    (r'Saturated Fat \(g\) ([\d.]+) g', r'Saturated Fat: \1 g'),
-                    (r'Cholesterol \(mg\) ([\d.]+|less than \d+ milligrams) mg', r'Cholesterol: \1 mg'),
-                    (r'Dietary Fiber \(g\) ([\d.]+|less than \d+ gram) g', r'Dietary Fiber: \1 g'),
-                    (r'Sodium \(mg\) ([\d.]+) mg', r'Sodium: \1 mg'),
-                    (r'Potassium \(mg\) ([\d.]+|-) mg', r'Potassium: \1 mg'),
-                    (r'Calcium \(mg\) ([\d.]+) mg', r'Calcium: \1 mg'),
-                    (r'Iron \(mg\) ([\d.]+) mg', r'Iron: \1 mg'),
-                    (r'Trans Fat \(g\) ([\d.]+) g', r'Trans Fat: \1 g'),
-                    (r'Vitamin D \(IU\) ([\d.]+\+?|0\+?|-) IU', r'Vitamin D: \1 IU'),
-                    (r'Vitamin C \(mg\) ([\d.]+\+?|0\+?|-) mg', r'Vitamin C: \1 mg'),
-                    (r'Vitamin A \(RE\) ([\d.]+|-) RE', r'Vitamin A: \1 RE'),
-                ]
+                cleaned_items = []
                 
-                # Apply all pattern replacements
-                for pattern, replacement in patterns:
-                    text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+                for item in data:
+                    # Extract structured nutrition info
+                    nutrition_info = FoodDataCleaner.extract_nutrition_info(item['nutritional_info'])
+                    
+                    # Create cleaned item with meal type
+                    cleaned_item = {
+                        'meal_type': meal_type,
+                        'station_name': item['station_name'],
+                        'food_name': item['food_name'],
+                        'nutrition': nutrition_info
+                    }
+                    
+                    cleaned_items.append(cleaned_item)
+                    all_cleaned_data.append(cleaned_item)
                 
-                # Add pipes between different nutrients
-                # Split by known nutrient patterns and rejoin with pipes
-                nutrients = re.split(r'(?=(?:Calories|Protein|Total Carbohydrates|Sugar|Total Fat|Saturated Fat|Cholesterol|Dietary Fiber|Sodium|Potassium|Calcium|Iron|Trans Fat|Vitamin [A-Z]|Serving size|Allergens):)', text)
+                # Save individual cleaned file
+                filename = os.path.basename(file_path)
+                output_path = f'backend/app/data/cleaned_data/{filename}'
                 
-                # Clean up and filter out empty strings
-                nutrients = [nutrient.strip() for nutrient in nutrients if nutrient.strip()]
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    json.dump(cleaned_items, f, indent=2, ensure_ascii=False)
                 
-                # Join with pipe separators
-                return ' | '.join(nutrients)
+                print(f"✅ Cleaned and saved: {output_path}")
+                print(f"   Processed {len(cleaned_items)} {meal_type} items")
+                
+            except FileNotFoundError:
+                print(f"❌ File not found: {file_path}")
+            except Exception as e:
+                print(f"❌ Error processing {file_path}: {str(e)}")
+        
+        # Save combined cleaned data
+        combined_output_path = 'backend/app/data/cleaned_data/all_food_items_cleaned.json'
+        with open(combined_output_path, 'w', encoding='utf-8') as f:
+            json.dump(all_cleaned_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"\n✅ Combined cleaned data saved: {combined_output_path}")
+        print(f"   Total items processed: {len(all_cleaned_data)}")
+        
+        # Show sample of cleaned data
+        if all_cleaned_data:
+            print("\n📋 Sample cleaned item:")
+            print(json.dumps(all_cleaned_data[0], indent=2))
+            
+        # Show meal distribution
+        meal_counts = {}
+        for item in all_cleaned_data:
+            meal_type = item['meal_type']
+            meal_counts[meal_type] = meal_counts.get(meal_type, 0) + 1
+        
+        print(f"\n📊 Meal distribution:")
+        for meal, count in meal_counts.items():
+            print(f"   {meal.capitalize()}: {count} items")
+        
+        return all_cleaned_data
 
-            df['nutritional_info'] = df['nutritional_info'].apply(format_with_pipes)
-
-            df['nutritional_info'] = df['nutritional_info'].str.replace(r'\s*\|\s*', ' | ', regex=True)  # Standardize pipe spacing
-            df['nutritional_info'] = df['nutritional_info'].str.replace('Calories From Fat.*?(?=\||$)', '', regex=True)  # Remove "Calories From Fat"
-            df['nutritional_info'] = df['nutritional_info'].str.replace('Saturated Fat \+ Trans Fat.*?(?=\||$)', '', regex=True)  # Remove combined fat info
-
-            # Save the cleaned data
-            df.to_json(f'backend/app/data/cleaned_data/{meals}.json', orient='records', indent=2)
-            print(f"\nSaved cleaned data to: backend/app/data/cleaned_data/{meals}.json")
+# Run the cleaner
+if __name__ == "__main__":
+    cleaner = FoodDataCleaner()
+    cleaned_data = cleaner.clean_food_data()
+    print("\n🎉 Data cleaning completed successfully!")
