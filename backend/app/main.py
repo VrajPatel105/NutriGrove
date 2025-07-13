@@ -1,28 +1,27 @@
-from scraper import Scraper  # Import your Scraper class
+from scraper import Scraper
 from datetime import datetime
 from data.clean_data import FoodDataCleaner
-from database import SupabaseUploader
 
-# Option 1: Use today's date
-today_date = datetime.today().strftime('%Y-%m-%d')
+# Use today's date
+# today_date = datetime.today().strftime('%Y-%m-%d')
+today_date = "2025-07-16"
 scraper = Scraper(today_date)
 
 try:
-    
-    # scraper.fetch_breakfast()
-    # scraper.fetch_lunch()
-    # # scraper.fetch_brunch()
-    # scraper.fetch_dinner()
-    # print("All data scraped successfully!")
-    # # cleaning the scraped data
-    # FoodDataCleaner.clean_food_data()
-    # print("All data cleaned")
-
-    # Create uploader instance and upload
-    uploader = SupabaseUploader()
-    uploader.upload_json_file('backend/app/data/cleaned_data/all_food_items_cleaned.json')
-    print('Data uploaded to database')
-
-    
+    # # Scrape data directly to database
+    scraper.fetch_breakfast()
+    scraper.fetch_lunch()
+    scraper.fetch_dinner()
+    print("All data scraped and saved to database!")
 finally:
-    scraper.close()
+    scraper.close()    
+
+# Clean the scraped data from database
+cleaner = FoodDataCleaner()
+cleaned_data = cleaner.clean_food_data()
+
+if cleaned_data:
+    print(f"Data cleaned and uploaded! Total items: {len(cleaned_data)}")
+else:
+    print("Data cleaning failed!")
+
