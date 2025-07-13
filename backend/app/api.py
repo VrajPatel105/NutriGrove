@@ -1,0 +1,1 @@
+# Using fastapi for getting response and sending resopnses to the user
