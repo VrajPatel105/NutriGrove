@@ -3,7 +3,6 @@ from datetime import datetime
 from data.clean_data import FoodDataCleaner
 from ai_food_recommendation import FoodRecommender
 import json
-
 # Use today's date
 today_date = datetime.today().strftime('%Y-%m-%d')
 today_date = "2025-07-16" # since today's sunday, i just manually changed this (temp)
