@@ -29,7 +29,7 @@ else:
 
 recommender = FoodRecommender()
     
-    # Simple user preferences
+# testing this with user preferences manually
 user_preferences = {
     "dietary_restrictions": ["vegetarian"],
     "allergies": ["nuts"],

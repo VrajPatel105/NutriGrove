@@ -71,7 +71,7 @@ class FoodRecommender:
             }
             formatted_menu.append(formatted_item)
         
-        # Create prompt for AI
+        # Prompt for model
         prompt = f"""
 You are an expert nutritionist creating a complete daily meal plan for a university student. 
 
