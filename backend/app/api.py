@@ -1,9 +1,15 @@
 # Using fastapi for getting response and sending resopnses to the user
-from fastapi import FASTAPI
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from model.schema import UserInput
+from backend.app.model.schema import UserInput
+from backend.app.ai_food_recommendation import FoodRecommender
 
-app = FASTAPI()
+recommender = FoodRecommender()
+app = FastAPI()
+
+@app.get('/')
+def hello():
+    return {'message':'Hello, This is API system for NutriGrove'}
 
 @app.post('/recommendations')
 def recommendations(data: UserInput):
@@ -17,3 +23,6 @@ def recommendations(data: UserInput):
         'comments': data.comments
     }
 
+    schedule = recommender.get_daily_meal_schedule(user_preferences)
+
+    return JSONResponse(status_code=200, content=schedule)

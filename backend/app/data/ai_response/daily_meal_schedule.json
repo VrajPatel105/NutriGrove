@@ -1,17 +1,12 @@
 {
   "user_preferences": {
-    "dietary_restrictions": [
-      "vegetarian"
-    ],
-    "allergies": [
-      "nuts"
-    ],
-    "calorie_target": 2500,
-    "protein_target": 120,
-    "weight_kg": 64,
-    "height_cm": 177,
     "age": 20,
-    "comments": "I dont want fried food today. ALso today i am really craving for some good salad :) . also, i am indian vegeterian meaning that i dont eat eggs too. so no eggs please"
+    "weight": 150,
+    "height": 178,
+    "dietary_restrictions": "I am a indian vegeterian. no eggs or meat",
+    "calories": 2500,
+    "protein": 100,
+    "comments": "I want to eat food that is more vegan type"
   },
   "meal_schedule": {
     "breakfast": [
@@ -26,25 +21,7 @@
         "fiber_g": 2.0,
         "sodium_mg": 240.0,
         "allergens": [],
-        "reason_selected": "Good source of vegetarian protein to start the day.  Meets dietary restrictions and avoids allergens."
-      },
-      {
-        "name": "Blueberry Muffin",
-        "station": "SWEET SHOPPE",
-        "serving_size": "2 oz portion",
-        "calories": 180,
-        "protein_g": 2.0,
-        "carbs_g": 32.0,
-        "fat_g": 5.0,
-        "fiber_g": 1.0,
-        "sodium_mg": 270.0,
-        "allergens": [
-          "Gluten",
-          "Milk",
-          "Soy",
-          "Wheat"
-        ],
-        "reason_selected": "Provides carbohydrates for energy and some fiber.  A small treat to satisfy cravings while being mindful of calorie limits."
+        "reason_selected": "Provides a good source of plant-based protein to start the day, aligning with the user's vegan preference.  Relatively low in sodium compared to other options."
       },
       {
         "name": "Crispy Hashbrowns",
@@ -57,7 +34,25 @@
         "fiber_g": 2.0,
         "sodium_mg": 170.0,
         "allergens": [],
-        "reason_selected": "Adds more carbohydrates and fiber to the breakfast. Also provides some extra calories without adding too much fat."
+        "reason_selected": "Adds carbohydrates for energy and fiber for digestion.  A good source of complex carbohydrates compared to sugary breakfast items."
+      },
+      {
+        "name": "Blueberry Muffin",
+        "station": "SWEET SHOPPE",
+        "serving_size": "2 oz portion",
+        "calories": 180,
+        "protein_g": 2.0,
+        "carbs_g": 32.0,
+        "fat_g": 5.0,
+        "fiber_g": 1,
+        "sodium_mg": 270.0,
+        "allergens": [
+          "Gluten",
+          "Milk",
+          "Soy",
+          "Wheat"
+        ],
+        "reason_selected": "Offers additional carbohydrates and some fiber. This is a compromise, as it contains allergens, but it's a small serving and no suitable allergen-free alternatives with similar carbs and calories were available."
       }
     ],
     "lunch": [
@@ -75,20 +70,7 @@
           "Gluten",
           "Wheat"
         ],
-        "reason_selected": "Hearty, vegetarian option high in protein and fiber. Satisfies the request for a salad, but in a chili-based form given no other significant salad choices that are allergen-free"
-      },
-      {
-        "name": "Sliced Watermelon",
-        "station": "FLAME",
-        "serving_size": "2 each",
-        "calories": 20,
-        "protein_g": 0.0,
-        "carbs_g": 4.0,
-        "fat_g": 0.0,
-        "fiber_g": 0.0,
-        "sodium_mg": 0.0,
-        "allergens": [],
-        "reason_selected": "Hydrating and refreshing, providing some natural sugars without significant calories."
+        "reason_selected": "High in protein and fiber, a good source of plant-based protein for lunch.  The fiber will aid in digestion and satiety."
       },
       {
         "name": "White Rice",
@@ -101,7 +83,20 @@
         "fiber_g": 1,
         "sodium_mg": 30.0,
         "allergens": [],
-        "reason_selected": "Adds carbohydrates for sustained energy throughout the afternoon."
+        "reason_selected": "Provides additional carbohydrates for energy. A simple, easily digestible carb source"
+      },
+      {
+        "name": "Sliced Watermelon",
+        "station": "FLAME",
+        "serving_size": "2 each",
+        "calories": 20,
+        "protein_g": 0.0,
+        "carbs_g": 4.0,
+        "fat_g": 0.0,
+        "fiber_g": 0.0,
+        "sodium_mg": 0.0,
+        "allergens": [],
+        "reason_selected": "Hydrating and provides a refreshing element to the meal.  Low in calories."
       }
     ],
     "dinner": [
@@ -120,20 +115,7 @@
           "Soy",
           "Wheat"
         ],
-        "reason_selected": "Another good source of vegetarian protein, offering a different flavor profile than lunch."
-      },
-      {
-        "name": "Balsamic Roasted Vegetables",
-        "station": "CARVED AND CRAFTED",
-        "serving_size": "1/2 cup",
-        "calories": 50,
-        "protein_g": 1.0,
-        "carbs_g": 5.0,
-        "fat_g": 3.0,
-        "fiber_g": 2.0,
-        "sodium_mg": 65.0,
-        "allergens": [],
-        "reason_selected": "Adds vitamins, minerals, and fiber, contributing to a healthy and balanced dinner. It also fulfills the user's craving for a salad-like dish, keeping in mind the dietary needs."
+        "reason_selected": "Another substantial source of plant-based protein and fiber for a filling dinner. The chipotle flavor adds variety."
       },
       {
         "name": "Thyme Roasted Potatoes",
@@ -146,30 +128,43 @@
         "fiber_g": 2.0,
         "sodium_mg": 230.0,
         "allergens": [],
-        "reason_selected": "Provides additional carbohydrates and fiber for a filling dinner."
+        "reason_selected": "Provides additional carbohydrates and fiber. A healthier alternative to fried potatoes."
+      },
+      {
+        "name": "Balsamic Roasted Vegetables",
+        "station": "CARVED AND CRAFTED",
+        "serving_size": "1/2 cup",
+        "calories": 50,
+        "protein_g": 1.0,
+        "carbs_g": 5.0,
+        "fat_g": 3.0,
+        "fiber_g": 2.0,
+        "sodium_mg": 65.0,
+        "allergens": [],
+        "reason_selected": "Adds vitamins and minerals, further increasing fiber intake and offering a flavorful contrast to the burger and potatoes."
       }
     ],
     "daily_totals": {
-      "total_calories": 2430,
-      "total_protein_g": 120,
-      "total_carbs_g": 236.0,
-      "total_fat_g": 91.0,
-      "total_fiber_g": 17.0,
-      "total_sodium_mg": 1785.0
+      "total_calories": 2400,
+      "total_protein_g": 100,
+      "total_carbs_g": 242.0,
+      "total_fat_g": 97.0,
+      "total_fiber_g": 18,
+      "total_sodium_mg": 1615.0
     },
     "meal_plan_analysis": {
-      "calorie_goal_status": "Under target by 70 calories",
+      "calorie_goal_status": "Under target by 100 calories",
       "protein_goal_status": "Met target",
-      "dietary_compliance": "All restrictions followed",
-      "nutritional_balance": "Good balance of protein, carbohydrates, and fats.  Fiber intake is also good.",
+      "dietary_compliance": "All restrictions followed except for some allergens in the breakfast muffin.  The user's preference for 'more vegan type' food was prioritized, resulting in some compromises regarding allergens.",
+      "nutritional_balance": "The meal plan provides a good balance of carbohydrates, proteins, and fats, with a focus on plant-based options. The fiber intake is good.",
       "variety_score": "Good variety across stations and food types.",
-      "health_rating": "Excellent - the meal plan meets the dietary needs and preferences of the user, ensuring a balanced and healthy intake.",
+      "health_rating": "Good -  could be improved by further minimizing sodium and selecting completely allergen-free options.",
       "suggestions": [
-        "Consider adding a small fruit or vegetable snack between meals if needed to increase calorie intake.",
-        "The meal plan fully accounts for the user's comments by providing vegetarian, nut-free meals and prioritizing the user's salad preference.",
-        "Monitor sodium intake and try to select lower sodium options in the future if possible."
+        "Consider adding more fruits and vegetables to increase vitamin and mineral intake.",
+        "Explore other vegan protein sources at the dining hall or supplement with vegan protein powder to ensure variety and meet protein goals more easily.",
+        "Try to substitute the muffin with an allergen-free equivalent if available, otherwise ensure this is the only food with allergens included."
       ],
-      "additional_comments": "BMI calculation for a 20-year-old, 64kg individual, 177cm tall is approximately 20.4 kg/m², which falls within the healthy weight range.  This meal plan is designed to maintain a healthy weight, not necessarily to gain or lose weight."
+      "additional_comments": "The user's comment regarding a preference for vegan-type food was considered a priority, leading to a focus on plant-based options. This resulted in a compromise regarding the small amount of allergens in one item due to the limited availability of suitable vegan alternatives.  The daily calorie count is slightly below the target, but given the user's weight (BMI is approximately 23.8 which is in the normal range, suggesting an excellent starting weight. If the student intends to lose or gain weight, further adjustments may be needed.), this is acceptable. Also, given his age and activity, it is recommended to stay close to this caloric intake. "
     }
   },
   "timestamp": "{\"generated_at\": \"now\"}"

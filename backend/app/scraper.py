@@ -37,12 +37,9 @@ class Scraper:
             
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(food_data_list, f, indent=2, ensure_ascii=False)
-            
-            print(f"Saved {len(food_data_list)} items to {file_path}")
             return True
             
         except Exception as e:
-            print(f"Error saving to file: {e}")
             return False
 
     # def save_to_database(self, food_data, meal_type):
@@ -75,8 +72,6 @@ class Scraper:
         total_items = 0
         counter = 1
         
-        print(f"\nStarting {meal_type.upper()} scrape for {self.date}")
-        
         while True:
             try:
                 # Find table
@@ -89,21 +84,17 @@ class Scraper:
                     print(f"\nStation: {station_name}")
                 except Exception as e:
                     station_name = f"Station {counter}"
-                    print(f"\nStation: {station_name} (fallback)")
                 
                 # Get table rows
                 rows = table.find_elements(By.CSS_SELECTOR, 'tr')
                 if not rows:
                     break
                 
-                print(f"Processing {len(rows)} items...")
-                
                 # Process each food item
                 for row_index, row in enumerate(rows, 1):
                     try:
                         button_click = row.find_element(By.CSS_SELECTOR, 'td:first-child div span')
                         food_name = button_click.text.strip()
-                        print(f"  Processing: {food_name}")
                         
                         # Click to open nutrition popup
                         button_click.click()
@@ -135,14 +126,10 @@ class Scraper:
                         time.sleep(2)
                         
                     except Exception as e:
-                        print(f"  Error with item {row_index}: {e}")
                         continue
-                
-                print(f"Finished station {counter} ({station_name})")
                 counter += 1
                 
             except Exception as e:
-                print(f"No more tables found or error with table {counter}: {e}")
                 break
         
         # Save all items to file
@@ -150,10 +137,6 @@ class Scraper:
             file_saved = self.save_to_file(all_food_items, meal_type)
         else:
             file_saved = False
-        
-        print(f"\n{meal_type.upper()} Summary:")
-        print(f"Total items processed: {total_items}")
-        print(f"Items saved to file: {'Yes' if file_saved else 'No'}")
         
         return total_items > 0
 
@@ -179,11 +162,9 @@ class Scraper:
         results = {}
         
         for meal in meals:
-            print(f"\n{'='*50}")
             try:
                 results[meal] = self.scrape_meal(meal)
             except Exception as e:
-                print(f"Error scraping {meal}: {e}")
                 results[meal] = False
         
         return results
