@@ -1,15 +1,16 @@
 import json
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
 from supabase import create_client, Client
 
 class FoodRecommender:
     def __init__(self):
-        """Initialize the AI Food Recommender with Google Gemini
-        Google Gemini is being used because I have a student  acccount that offeres api for free (till certain limit ofc :) )
-        """
-        load_dotenv()
+        """Initialize the AI Food Recommender with Google Gemini"""
+        # Load .env from backend/app directory
+        env_path = Path(__file__).parent / ".env"
+        load_dotenv(env_path)
         
         # Initialize Google Gemini
         gemini_key = os.getenv("GEMINI_API_KEY")
@@ -23,7 +24,6 @@ class FoodRecommender:
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_ANON_KEY")
         
-        # adding this to rectify specific errors
         if not supabase_url or not supabase_key:
             raise ValueError("Missing Supabase credentials in .env file")
         
