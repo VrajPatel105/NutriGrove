@@ -15,7 +15,7 @@ def hello():
 def recommendations(data: UserInput):
     user_preferences = {
         'age': data.age,
-        'weight': data.wegith,
+        'weight': data.weight,
         'height': data.height,
         'dietary_restrictions': data.dietary_restrictions,
         'calories' : data.calories,

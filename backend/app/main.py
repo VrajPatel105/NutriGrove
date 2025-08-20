@@ -1,6 +1,7 @@
 from datetime import datetime
 from backend.app.ai_food_recommendation import FoodRecommender
 import json
+from backend.app.api import app
 
 # need to implement new logic, since i have moved the scraping code to a new repo 
 
