@@ -33,7 +33,7 @@ class FoodRecommender:
         # Initialize caching
         self._menu_cache = None
         self._cache_timestamp = 0
-        self._cache_duration = 86400  # 24 hour cache (full day)
+        self._cache_duration = 3600  # 1 hour cache
         
         print("AI Recommender initialized successfully!")
     
@@ -41,8 +41,8 @@ class FoodRecommender:
         """Get ALL available food data from database with caching"""
         current_time = time.time()
         
-        # Check if cache is valid
-        if (self._menu_cache is None or 
+        # Check if cache is valid (force refresh for now)
+        if (True or self._menu_cache is None or 
             current_time - self._cache_timestamp > self._cache_duration):
             
             try:
