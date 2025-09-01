@@ -138,13 +138,13 @@ INSTRUCTIONS:
 
 RESPOND ONLY with valid JSON in this EXACT format:
 
-{
+{{
   "breakfast": [
-    {
+    {{
       "name": "Exact Food Name",
       "station": "Exact Station Name",
-      "recommended_portion": "X servings (e.g., \"2 eggs\", \"1.5 cups oatmeal\")",
-      "serving_size": "Portion calculation (e.g., \"Menu: 1 egg, Recommended: 2 eggs\")",
+      "recommended_portion": "X servings (e.g., \\"2 eggs\\", \\"1.5 cups oatmeal\\")",
+      "serving_size": "Portion calculation (e.g., \\"Menu: 1 egg, Recommended: 2 eggs\\")",
       "calories": total_cal_for_recommended_portion,
       "protein_g": total_protein_for_recommended_portion,
       "carbs_g": total_carbs_for_recommended_portion,
@@ -153,8 +153,8 @@ RESPOND ONLY with valid JSON in this EXACT format:
       "sodium_mg": total_sodium_for_recommended_portion,
       "allergens": ["list", "of", "allergens"],
       "ingredients": "sanitized_ingredients_without_disclaimer",
-      "per_menu_serving_nutrition": {
-        "serving_size": "Menu serving (e.g., \"1 tbsp\")",
+      "per_menu_serving_nutrition": {{
+        "serving_size": "Menu serving (e.g., \\"1 tbsp\\")",
         "calories": base_calories,
         "protein_g": base_protein_g,
         "carbs_g": base_carbs_g,
@@ -171,9 +171,9 @@ RESPOND ONLY with valid JSON in this EXACT format:
         "vitamin_a_re": base_vitamin_a_re,
         "vitamin_c_mg": base_vitamin_c_mg,
         "vitamin_d_iu": base_vitamin_d_iu,
-        "extra": { "echo_any_other_nutrient_keys_from_menu": "values as given or null" }
-      },
-      "full_nutrition": {
+        "extra": {{ "echo_any_other_nutrient_keys_from_menu": "values as given or null" }}
+      }},
+      "full_nutrition": {{
         "calories": scaled_calories_for_recommended_portion,
         "protein_g": scaled_protein_g_for_recommended_portion,
         "carbs_g": scaled_carbs_g_for_recommended_portion,
@@ -190,15 +190,15 @@ RESPOND ONLY with valid JSON in this EXACT format:
         "vitamin_a_re": scaled_vitamin_a_re_or_null,
         "vitamin_c_mg": scaled_vitamin_c_mg_or_null,
         "vitamin_d_iu": scaled_vitamin_d_iu_or_null,
-        "extra": { "echo_any_other_nutrient_keys_from_menu": "scaled values or null" }
-      },
+        "extra": {{ "echo_any_other_nutrient_keys_from_menu": "scaled values or null" }}
+      }},
       "portion_math": "Example: 3 x 6g protein = 18g; 3  70 cal = 210 cal",
       "reason_selected": "Explain: 1) Why chosen, 2) Portion calculation, 3) How it helps targets"
-    }
+    }}
   ],
-  "lunch": [ { ... same structure as breakfast item ... } ],
-  "dinner": [ { ... same structure as breakfast item ... } ],
-  "daily_totals": {
+  "lunch": [ {{ ... same structure as breakfast item ... }} ],
+  "dinner": [ {{ ... same structure as breakfast item ... }} ],
+  "daily_totals": {{
     "total_calories": sum_of_all_calculated_calories,
     "total_protein_g": sum_of_all_calculated_protein,
     "total_carbs_g": sum_of_all_calculated_carbs,
@@ -219,8 +219,8 @@ RESPOND ONLY with valid JSON in this EXACT format:
     "protein_target": user_protein_target,
     "calorie_difference": actual_total_minus_target,
     "protein_difference": actual_total_minus_target
-  },
-  "meal_plan_analysis": {
+  }},
+  "meal_plan_analysis": {{
     "calorie_goal_status": "Achieved: [actual_calories] vs target [target_calories] (+/- X difference)",
     "protein_goal_status": "Achieved: [actual_protein]g vs target [target_protein]g (+/- X difference)",
     "target_achievement": "SUCCESS - All targets met/exceeded" or "FAILED - Explain what targets were missed and why",
@@ -231,8 +231,8 @@ RESPOND ONLY with valid JSON in this EXACT format:
     "portion_transparency": "All nutrition values calculated for recommended portions, not menu base portions",
     "user_comment_compliance": "Followed user's specific requests: [list what was followed]" or "No specific requests in comments",
     "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
-  }
-}
+  }}
+}}
 
 ABSOLUTE REQUIREMENTS - DO NOT COMPROMISE ON THESE:
 1. NEVER go under the user's calorie or protein targets — if targets can't be met with available food, recommend larger portions.
@@ -262,6 +262,7 @@ JSON FORMATTING REQUIREMENTS:
 - Test that your JSON is valid before responding.
 
 """
+
         
         try:
             print("Generating meal plan with single API call...")
