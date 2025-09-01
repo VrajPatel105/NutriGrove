@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -29,38 +28,28 @@ class FoodRecommender:
             raise ValueError("Missing Supabase credentials in .env file")
         
         self.supabase = create_client(supabase_url, supabase_key)
-        
-        # Initialize caching
-        self._menu_cache = None
-        self._cache_timestamp = 0
-        self._cache_duration = 86400  # 24 hour cache (full day)
-        
         print("AI Recommender initialized successfully!")
     
     def get_all_menu_data(self):
-        """Get ALL available food data from database with caching"""
-        current_time = time.time()
-        
-        # Check if cache is valid
-        if (self._menu_cache is None or 
-            current_time - self._cache_timestamp > self._cache_duration):
-            
-            try:
-                print("Fetching fresh menu data from database...")
-                result = self.supabase.table('cleaned_data').select('*').execute()
-                self._menu_cache = result.data
-                self._cache_timestamp = current_time
-                print(f"Menu data cached successfully. {len(self._menu_cache)} items loaded.")
-            except Exception as e:
-                print(f"Error fetching menu data: {e}")
-                return self._menu_cache or []
-        else:
-            print("Using cached menu data...")
-        
-        return self._menu_cache or []
+        """Get ALL available food data from database"""
+        try:
+            # getting all thee cleaned data from supabase db
+            result = self.supabase.table('cleaned_data').select('*').execute()
+            return result.data
+        except Exception as e:
+            print(f"Error fetching menu data: {e}")
+            return []
     
-    def format_menu_data(self, menu_items):
-        """Format menu data for AI processing"""
+    # main function that will recommend
+    def get_daily_meal_schedule(self, user_preferences):
+        """Generate a complete daily meal schedule"""
+        
+        # Get ALL menu data
+        menu_items = self.get_all_menu_data()
+        if not menu_items:
+            return {"error": "No menu data available"}
+        
+        # Format data for AI
         formatted_menu = []
         for item in menu_items:
             food_data = item['data']
@@ -81,20 +70,8 @@ class FoodRecommender:
                 'ingredients': nutrition.get('ingredients', 'N/A')
             }
             formatted_menu.append(formatted_item)
-        return formatted_menu
-    
-    def get_daily_meal_schedule(self, user_preferences):
-        """Generate a complete daily meal schedule using single API call"""
         
-        # Get ALL menu data (cached)
-        menu_items = self.get_all_menu_data()
-        if not menu_items:
-            return {"error": "No menu data available"}
-        
-        # Format data for AI
-        formatted_menu = self.format_menu_data(menu_items)
-        
-        # Comprehensive prompt for single API call
+        # Prompt for model
         prompt = f"""
 You are an expert nutritionist creating a complete daily meal plan for a university student. 
 
@@ -103,14 +80,26 @@ USER PREFERENCES AND GOALS:
 
 COMPLETE DINING HALL MENU (ALL AVAILABLE OPTIONS):
 {json.dumps(formatted_menu, indent=2)}
+	# Improved Nutrition AI Prompt
+
+```python
+# Prompt for model
+prompt = f"""
+	You are an expert nutritionist creating a complete daily meal plan for a university student. 
+
+	USER PREFERENCES AND GOALS:
+	{json.dumps(user_preferences, indent=2)}
+
+	COMPLETE DINING HALL MENU (ALL AVAILABLE OPTIONS):
+{json.dumps(formatted_menu, indent=2)}
 
 CRITICAL PORTION AND NUTRITION CALCULATION RULES:
 1. ALWAYS calculate nutrition values based on ACTUAL portions needed
 2. If menu shows "1 egg = 70 calories, 6g protein" but you recommend "3 eggs", then list "210 calories, 18g protein"
 3. Scale ALL nutritional values (calories, protein, carbs, fat, fiber, sodium) proportionally to serving size
-4. If user requests specific protein/calorie targets, you MUST meet or exceed them with 10% buffer - this is NON-NEGOTIABLE
-5. Give a short reason on why you selected this in the reason selected field
-CRITICAL: Show your multiplication clearly. If menu shows '1 egg = 6g protein' and you recommend '3 eggs', you MUST show '3 × 6g = 18g protein' in your calculations.
+4. If user requests specific protein/calorie targets, you MUST meet or exceed them - this is NON-NEGOTIABLE
+5. Show your portion calculations clearly in the reason_selected field
+
 INSTRUCTIONS:
 1. **PRIORITIZE USER COMMENTS ABOVE ALL OTHER REQUIREMENTS** - if user says they want specific foods, portions, or goals, follow their requests exactly
 2. Analyze ALL menu options and select the BEST combinations for breakfast, lunch, and dinner
@@ -185,8 +174,8 @@ RESPOND ONLY with valid JSON in this EXACT format:
     "protein_difference": actual_total_minus_target
   }},
   "meal_plan_analysis": {{
-    "calorie_goal_status": "Achieved: [actual_calories] vs target [target_calories] (+/- X difference)",
-    "protein_goal_status": "Achieved: [actual_protein]g vs target [target_protein]g (+/- X difference)",
+    "calorie_goal_status": "Achieved: {actual_calories} vs target {target_calories} (+/- X difference)",
+    "protein_goal_status": "Achieved: {actual_protein}g vs target {target_protein}g (+/- X difference)",
     "target_achievement": "SUCCESS - All targets met/exceeded" or "FAILED - Explain what targets were missed and why",
     "dietary_compliance": "All restrictions followed" or "Issues: description",
     "nutritional_balance": "Assessment of overall nutritional balance",
@@ -207,26 +196,15 @@ ABSOLUTE REQUIREMENTS - DO NOT COMPROMISE ON THESE:
 6. **Total daily protein must meet or exceed target by at least 5g**
 7. **Explain your portion calculations** in the reason_selected field
 8. **NO TEXT outside the JSON structure**
-9. **Use EXACT values from the menu data provided**
-10. **Select 2-4 items per meal for balanced nutrition**
 
 QUALITY CHECK BEFORE RESPONDING:
 - Verify total calories ≥ target calories
 - Verify total protein ≥ target protein  
 - Verify all nutrition values reflect recommended portions, not menu base portions
 - Verify user's specific comments/requests are addressed
-
-JSON FORMATTING REQUIREMENTS:
-- Use only standard ASCII characters in text fields
-- Avoid special quotes (use only "straight quotes")
-- No line breaks within string values
-- Keep all decimal numbers as simple floats (e.g., 42.5, not 42.50)
-- Escape any internal quotes with backslash
-- Test that your JSON is valid before responding
 """
         
         try:
-            print("Generating meal plan with single API call...")
             response = self.model.generate_content(prompt)
             ai_response = response.text.strip()
             
@@ -234,24 +212,17 @@ JSON FORMATTING REQUIREMENTS:
             if ai_response.startswith('```json'):
                 ai_response = ai_response.replace('```json', '').replace('```', '').strip()
             
-            # Extract JSON
-            start_idx = ai_response.find('{')
-            end_idx = ai_response.rfind('}') + 1
-            
-            if start_idx != -1 and end_idx != -1:
-                json_str = ai_response[start_idx:end_idx]
-                meal_schedule = json.loads(json_str)
+            # Parse JSON
+            try:
+                meal_schedule = json.loads(ai_response)
                 
                 # Save to file
                 self.save_response_to_file(meal_schedule, user_preferences)
-                print("Meal plan generated successfully!")
                 
                 return meal_schedule
-            else:
+            except json.JSONDecodeError:
                 return {"error": "Failed to parse AI response", "raw_response": ai_response}
-                
-        except json.JSONDecodeError as e:
-            return {"error": "Failed to parse AI response as JSON", "json_error": str(e), "raw_response": ai_response}
+            
         except Exception as e:
             return {"error": f"AI service error: {str(e)}"}
     
@@ -265,7 +236,7 @@ JSON FORMATTING REQUIREMENTS:
             response_data = {
                 "user_preferences": user_preferences,
                 "meal_schedule": meal_schedule,
-                "timestamp": json.dumps({"generated_at": time.time()})
+                "timestamp": json.dumps({"generated_at": "now"})  # You can add actual timestamp
             }
             
             # Save to file
