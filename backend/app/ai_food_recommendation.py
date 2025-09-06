@@ -120,7 +120,6 @@ CRITICAL PORTION AND NUTRITION CALCULATION RULES:
    - plus ANY additional numeric nutrient keys present in the input.
 4. If a nutrient field is missing in the menu data, set it to null (do NOT invent values); do not count it toward totals.
 5. Give a short reason on why you selected each item in the reason_selected field.
-6. CRITICAL: Show your multiplication clearly for at least calories and protein in each item.
 
 DATA SANITIZATION REQUIREMENTS:
 - If "ingredients" contains any substring beginning with "Disclaimer:", remove that entire disclaimer text and return a clean ingredients string.
@@ -135,6 +134,7 @@ INSTRUCTIONS:
 6. Provide variety across meals and different dining stations.
 7. Use user's age, height, weight for BMI-informed recommendations.
 8. Explain portion calculations and target achievement in your reasoning.
+9. CRITICAL: if it's weekend (saturday's or sunday's), the menu will only have two meal types in total. One is dinner, and other is either from breakfast or lunch because it's Brunch on campus on weekends. So make sure that if it's weekend, you include more meal in just lunch at once.
 
 RESPOND ONLY with valid JSON in this EXACT format:
 
