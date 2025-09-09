@@ -134,8 +134,16 @@ INSTRUCTIONS:
 6. Provide variety across meals and different dining stations.
 7. Use user's age, height, weight for BMI-informed recommendations.
 8. Explain portion calculations and target achievement in your reasoning.
-9. Quantity requirement per meal: Return 2–4 items for breakfast, 2–4 items for lunch, and 2–4 items for dinner. NEVER return fewer than 2 items per meal (except the weekend brunch rule below).
-10. CRITICAL: if it's weekend (saturday's or sunday's), the menu will only have two meal types in total. One is dinner, and other is either from breakfast or lunch because it's Brunch on campus on weekends. So make sure that if it's weekend, you include more meal in just lunch at once (3–6 items) to meet targets.
+9. Quantity requirement per meal: Return 2-4 items for breakfast, 2-4 items for lunch, and 2-4 items for dinner. NEVER return fewer than 2 items per meal (except the weekend brunch rule below).
+10. CRITICAL weekend rule: if it's weekend (saturday's or sunday's), the menu will only have two meal types in total. One is dinner, and other is either from breakfast or lunch because it's Brunch on campus on weekends. So make sure that if it's weekend, you include more meal in just lunch at once (3–6 items) to meet targets.
+
+AUTO-CORRECT LOOP (DO NOT SKIP):
+- Before responding, compute totals. If ANY of the following would be true:
+  a) total calories < calorie_target OR
+  b) total protein_g < protein_target OR
+  c) any meal has < 2 items (unless weekend brunch consolidation),
+  THEN you MUST add additional items and/or increase portions and recompute until ALL constraints are satisfied.
+- You must NOT return a result where goals are missed. Do not output a FAILED status in analysis; adjust the plan instead so it passes.
 
 RESPOND ONLY with valid JSON in this EXACT format:
 
@@ -144,8 +152,8 @@ RESPOND ONLY with valid JSON in this EXACT format:
     {
       "name": "Exact Food Name",
       "station": "Exact Station Name",
-      "recommended_portion": "X servings (e.g., \\"2 eggs\\", \\"1.5 cups oatmeal\\")",
-      "serving_size": "Portion calculation (e.g., \\"Menu: 1 egg, Recommended: 2 eggs\\")",
+      "recommended_portion": "X servings (e.g., "2 eggs", "1.5 cups oatmeal")",
+      "serving_size": "Portion calculation (e.g., "Menu: 1 egg, Recommended: 2 eggs")",
       "calories": total_cal_for_recommended_portion,
       "protein_g": total_protein_for_recommended_portion,
       "carbs_g": total_carbs_for_recommended_portion,
@@ -197,7 +205,7 @@ RESPOND ONLY with valid JSON in this EXACT format:
   "meal_plan_analysis": {
     "calorie_goal_status": "Achieved: [actual_calories] vs target [target_calories] (+/- X difference)",
     "protein_goal_status": "Achieved: [actual_protein]g vs target [target_protein]g (+/- X difference)",
-    "target_achievement": "SUCCESS - All targets met/exceeded" or "FAILED - Explain what targets were missed and why",
+    "target_achievement": "SUCCESS - All targets met/exceeded",
     "dietary_compliance": "All restrictions followed" or "Issues: description",
     "nutritional_balance": "Assessment of overall nutritional balance",
     "variety_score": "Good/Excellent variety across stations and food types",
@@ -209,19 +217,20 @@ RESPOND ONLY with valid JSON in this EXACT format:
 }
 
 ABSOLUTE REQUIREMENTS - DO NOT COMPROMISE ON THESE:
-1. NEVER go under the user's calorie or protein targets — if targets can't be met with available food, recommend larger portions.
+1. NEVER go under the user's calorie or protein targets — if targets can't be met with available food, recommend larger portions and/or add more items.
 2. Calculate ALL numeric nutrition values (including micronutrients and any extra keys present) for the actual recommended portions.
 3. User comments override all other requirements.
 4. Total daily calories must be within +50 of target (never more than 50 under).
 5. Total daily protein must meet or exceed target by at least 5g.
-6. Return 2-4 items per meal (minimum 2 per meal), except on weekends when brunch is consolidated as specified.
+6. Return 2–4 items per meal (minimum 2 per meal), except on weekends when brunch is consolidated as specified.
 7. NO TEXT outside the JSON structure.
 8. Use EXACT values from the menu data provided; for missing fields of micronutrients, use integer 0 and do not fabricate.
-9. Select 2-4 items per meal for balanced nutrition.
+9. Select 2–4 items per meal for balanced nutrition.
+10. DO NOT return a result that fails targets; if your draft would fail, adjust portions/items and try again before responding.
 
 QUALITY CHECK BEFORE RESPONDING:
-- Verify total calories ≥ target calories.
-- Verify total protein ≥ target protein.
+- Verify total calories ≥ target calories and within +50 of target.
+- Verify total protein ≥ target protein + 5g.
 - Verify all nutrition values reflect recommended portions (not menu base).
 - Verify each meal contains at least 2 items (unless weekend brunch consolidation).
 - Verify user's specific comments/requests are addressed.
@@ -235,6 +244,7 @@ JSON FORMATTING REQUIREMENTS:
 - Escape any internal quotes with backslash.
 - Test that your JSON is valid before responding.
 """
+
 
 
         
