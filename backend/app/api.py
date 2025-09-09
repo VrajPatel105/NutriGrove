@@ -15,14 +15,37 @@ def hello():
 def recommendations(data: UserInput):
     user_preferences = {
         'age': data.age,
-        'weight': data.wegith,
+        'gender': data.gender,
+        'weight': data.weight,
         'height': data.height,
+        'activity level': data.activity_level,
+        'goal' : data.goal,
+        'diet' : data.diet,
         'dietary_restrictions': data.dietary_restrictions,
         'calories' : data.calories,
         'protein': data.protein,
-        'comments': data.comments
+        'comments': data.comments,
+        'allergens': data.allergens,
+        'dislikes': data.dislikes
     }
 
     schedule = recommender.get_daily_meal_schedule(user_preferences)
 
     return JSONResponse(status_code=200, content=schedule)
+
+
+#   Essential Parameters (definitely add these):
+# age
+# weight
+# height
+# dietary_restrictions
+# calories
+# protein
+# comments 
+# THE ALL ABOVE ALREADY EXISTS IN THE API, BUT THE ONE'S BELOW NEEDS TO BE ADDED TO THE API. (09/09/25)
+#   - gender (male/female)
+#   - activity_level (active/sedentary/moderate)
+#   - goal (build_muscle/lose_weight/maintain)
+#   - diet (Keto/Paleo/Vegan/etc.)
+#   - allergens (array like [Eggs, Fish, Shellfish])
+#   - dislikes (array of disliked foods)
