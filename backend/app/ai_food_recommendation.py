@@ -179,7 +179,7 @@ ABSOLUTE REQUIREMENTS - DO NOT COMPROMISE ON THESE:
 4. Total daily calories must be within +50 of target (never more than 50 under).
 5. Total daily protein must meet or exceed target by at least 5g.
 6. NO TEXT outside the JSON structure.
-7. Use EXACT values from the menu data provided; for missing fields, use null and do not fabricate.
+7. Use EXACT values from the menu data provided; for missing fields, use integer 0 and do not fabricate.
 8. Select 2-4 items per meal for balanced nutrition.
 
 QUALITY CHECK BEFORE RESPONDING:
