@@ -101,8 +101,10 @@ class FoodRecommender:
         formatted_menu = self.format_menu_data(menu_items)
         
         # Comprehensive prompt for single API call
-        prompt = """
-You are an expert nutritionist creating a complete daily meal plan for a university student.
+        prompt = f"""
+You are an expert nutritionist. Create a complete daily meal plan for a university student using the dining hall menu provided.
+
+## INPUT DATA:
 
 USER PREFERENCES AND GOALS:
 {json.dumps(user_preferences, indent=2)}
@@ -110,160 +112,131 @@ USER PREFERENCES AND GOALS:
 COMPLETE DINING HALL MENU (ALL AVAILABLE OPTIONS):
 {json.dumps(formatted_menu, indent=2)}
 
-CRITICAL PORTION AND NUTRITION CALCULATION RULES:
-1. ALWAYS calculate nutrition values based on ACTUAL portions needed.
-2. If menu shows "1 egg = 70 calories, 6g protein" but you recommend "3 eggs", then list "210 calories, 18g protein".
-3. Scale ALL numeric nutrient fields (macros and micronutrients) proportionally to serving size, including but not limited to:
-   - calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg
-   - sugar_g, saturated_fat_g, trans_fat_g, cholesterol_mg
-   - calcium_mg, iron_mg, potassium_mg, vitamin_a_re, vitamin_c_mg, vitamin_d_iu
-   - plus ANY additional numeric nutrient keys present in the input.
-4. If a nutrient field is missing in the menu data, set it to null (do NOT invent values); do not count it toward totals.
-5. Give a short reason on why you selected each item in the reason_selected field.
+## PRIMARY OBJECTIVES (IN ORDER OF PRIORITY):
+1. **Follow user comments/requests EXACTLY** - User-specified foods, portions, or goals override everything else
+2. **Meet calorie target** - Must reach or exceed user's calorie goal (never go under)
+3. **Meet protein target** - Must reach or exceed user's protein goal (never go under) 
+4. **Honor dietary restrictions** - Strictly avoid all allergens and restrictions listed
+5. **Provide variety** - Select from different dining stations and food types
 
-DATA SANITIZATION REQUIREMENTS:
-- If "ingredients" contains any substring beginning with "Disclaimer:", remove that entire disclaimer text and return a clean ingredients string.
-- Remove trailing whitespace and line breaks in ingredients; use a single space between sentences.
+## PORTION CALCULATION RULES:
+- Base nutrition values are per menu serving size
+- Scale ALL nutrients proportionally to your recommended portion
+- Example: Menu shows "1 egg = 70 cal, 6g protein" → You recommend "3 eggs" → Calculate as "210 cal, 18g protein"
+- Scale these fields: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, sugar_g, saturated_fat_g, trans_fat_g, cholesterol_mg, calcium_mg, iron_mg, potassium_mg, vitamin_a_re, vitamin_c_mg, vitamin_d_iu
+- If a nutrient is missing from menu data, use null (don't invent values)
 
-INSTRUCTIONS:
-1. PRIORITIZE USER COMMENTS ABOVE ALL OTHER REQUIREMENTS — if user says they want specific foods, portions, or goals, follow exactly.
-2. Analyze ALL menu options and select the BEST combinations for breakfast, lunch, and dinner.
-3. MANDATORY: Meet or exceed the user's calorie and protein targets; never go under.
-4. Ensure the meal plan meets ALL dietary restrictions and avoids ALL allergens.
-5. Calculate nutritional values based on actual recommended portions, not menu base portions.
-6. Provide variety across meals and different dining stations.
-7. Use user's age, height, weight for BMI-informed recommendations.
-8. Explain portion calculations and target achievement in your reasoning.
-9. CRITICAL: if it's weekend (saturday's or sunday's), the menu will only have two meal types in total. One is dinner, and other is either from breakfast or lunch because it's Brunch on campus on weekends. So make sure that if it's weekend, you include more meal in just lunch at once.
+## WEEKEND SPECIAL RULE:
+If it's Saturday or Sunday, dining halls serve brunch instead of separate breakfast/lunch. Plan accordingly with larger portions to meet daily targets.
 
-RESPOND ONLY with valid JSON in this EXACT format:
+## DATA CLEANING:
+- Remove any "Disclaimer:" text from ingredients
+- Clean up extra whitespace and line breaks
 
-{
+## REQUIRED JSON OUTPUT FORMAT:
+
+{{
   "breakfast": [
-    {
-      "name": "Exact Food Name",
-      "station": "Exact Station Name",
-      "recommended_portion": "X servings (e.g., \\"2 eggs\\", \\"1.5 cups oatmeal\\")",
-      "serving_size": "Portion calculation (e.g., \\"Menu: 1 egg, Recommended: 2 eggs\\")",
-      "calories": total_cal_for_recommended_portion,
-      "protein_g": total_protein_for_recommended_portion,
-      "carbs_g": total_carbs_for_recommended_portion,
-      "fat_g": total_fat_for_recommended_portion,
-      "fiber_g": total_fiber_for_recommended_portion,
-      "sodium_mg": total_sodium_for_recommended_portion,
-      "allergens": ["list", "of", "allergens"],
-      "ingredients": "sanitized_ingredients_without_disclaimer",
-      "per_menu_serving_nutrition": {
-        "serving_size": "Menu serving (e.g., \\"1 tbsp\\")",
+    {{
+      "name": "Exact menu item name",
+      "station": "Exact station name from menu",
+      "recommended_portion": "Clear portion description (e.g. '2 eggs', '1.5 cups')",
+      "serving_size": "Menu base vs recommended (e.g. 'Menu: 1 egg, Recommended: 2 eggs')",
+      "calories": calculated_total_calories,
+      "protein_g": calculated_total_protein,
+      "carbs_g": calculated_total_carbs,
+      "fat_g": calculated_total_fat,
+      "fiber_g": calculated_total_fiber,
+      "sodium_mg": calculated_total_sodium,
+      "allergens": ["list", "from", "menu"],
+      "ingredients": "cleaned ingredients without disclaimers",
+      "per_menu_serving_nutrition": {{
+        "serving_size": "base serving from menu",
         "calories": base_calories,
-        "protein_g": base_protein_g,
-        "carbs_g": base_carbs_g,
-        "fat_g": base_total_fat_g,
-        "fiber_g": base_dietary_fiber_g,
-        "sodium_mg": base_sodium_mg,
-        "sugar_g": base_sugar_g,
-        "saturated_fat_g": base_saturated_fat_g,
-        "trans_fat_g": base_trans_fat_g,
-        "cholesterol_mg": base_cholesterol_mg,
-        "calcium_mg": base_calcium_mg,
-        "iron_mg": base_iron_mg,
-        "potassium_mg": base_potassium_mg,
-        "vitamin_a_re": base_vitamin_a_re,
-        "vitamin_c_mg": base_vitamin_c_mg,
-        "vitamin_d_iu": base_vitamin_d_iu,
-        "extra": { "echo_any_other_nutrient_keys_from_menu": "values as given or null" }
-      },
-      "full_nutrition": {
-        "calories": scaled_calories_for_recommended_portion,
-        "protein_g": scaled_protein_g_for_recommended_portion,
-        "carbs_g": scaled_carbs_g_for_recommended_portion,
-        "fat_g": scaled_total_fat_g_for_recommended_portion,
-        "fiber_g": scaled_dietary_fiber_g_for_recommended_portion,
-        "sodium_mg": scaled_sodium_mg_for_recommended_portion,
-        "sugar_g": scaled_sugar_g_for_recommended_portion_or_null,
-        "saturated_fat_g": scaled_saturated_fat_g_or_null,
-        "trans_fat_g": scaled_trans_fat_g_or_null,
-        "cholesterol_mg": scaled_cholesterol_mg_or_null,
-        "calcium_mg": scaled_calcium_mg_or_null,
-        "iron_mg": scaled_iron_mg_or_null,
-        "potassium_mg": scaled_potassium_mg_or_null,
-        "vitamin_a_re": scaled_vitamin_a_re_or_null,
-        "vitamin_c_mg": scaled_vitamin_c_mg_or_null,
-        "vitamin_d_iu": scaled_vitamin_d_iu_or_null,
-        "extra": { "echo_any_other_nutrient_keys_from_menu": "scaled values or null" }
-      },
-      "portion_math": "Example: 3 x 6g protein = 18g; 3 70 cal = 210 cal",
-      "reason_selected": "Explain: 1) Why chosen, 2) Portion calculation, 3) How it helps targets"
-    }
+        "protein_g": base_protein,
+        "carbs_g": base_carbs,
+        "fat_g": base_fat,
+        "fiber_g": base_fiber,
+        "sodium_mg": base_sodium,
+        "sugar_g": base_sugar_or_null,
+        "saturated_fat_g": base_sat_fat_or_null,
+        "trans_fat_g": base_trans_fat_or_null,
+        "cholesterol_mg": base_cholesterol_or_null,
+        "calcium_mg": base_calcium_or_null,
+        "iron_mg": base_iron_or_null,
+        "potassium_mg": base_potassium_or_null,
+        "vitamin_a_re": base_vit_a_or_null,
+        "vitamin_c_mg": base_vit_c_or_null,
+        "vitamin_d_iu": base_vit_d_or_null
+      }},
+      "full_nutrition": {{
+        "calories": scaled_calories,
+        "protein_g": scaled_protein,
+        "carbs_g": scaled_carbs,
+        "fat_g": scaled_fat,
+        "fiber_g": scaled_fiber,
+        "sodium_mg": scaled_sodium,
+        "sugar_g": scaled_sugar_or_null,
+        "saturated_fat_g": scaled_sat_fat_or_null,
+        "trans_fat_g": scaled_trans_fat_or_null,
+        "cholesterol_mg": scaled_cholesterol_or_null,
+        "calcium_mg": scaled_calcium_or_null,
+        "iron_mg": scaled_iron_or_null,
+        "potassium_mg": scaled_potassium_or_null,
+        "vitamin_a_re": scaled_vit_a_or_null,
+        "vitamin_c_mg": scaled_vit_c_or_null,
+        "vitamin_d_iu": scaled_vit_d_or_null
+      }},
+      "portion_math": "Show calculation: 3 servings x 70 cal = 210 cal, 3 x 6g protein = 18g",
+      "reason_selected": "Explain: 1) Why chosen 2) How portion was calculated 3) How it helps meet targets"
+    }}
   ],
-  "lunch": [ { ... same structure as breakfast item ... } ],
-  "dinner": [ { ... same structure as breakfast item ... } ],
-  "daily_totals": {
-    "total_calories": sum_of_all_calculated_calories,
-    "total_protein_g": sum_of_all_calculated_protein,
-    "total_carbs_g": sum_of_all_calculated_carbs,
-    "total_fat_g": sum_of_all_calculated_fat,
-    "total_fiber_g": sum_of_all_calculated_fiber,
-    "total_sodium_mg": sum_of_all_calculated_sodium,
-    "total_sugar_g": sum_of_all_calculated_sugar_or_omit_if_all_null,
-    "total_saturated_fat_g": sum_of_all_calculated_saturated_fat_or_omit_if_all_null,
-    "total_trans_fat_g": sum_of_all_calculated_trans_fat_or_omit_if_all_null,
-    "total_cholesterol_mg": sum_of_all_calculated_cholesterol_or_omit_if_all_null,
-    "total_calcium_mg": sum_of_all_calculated_calcium_or_omit_if_all_null,
-    "total_iron_mg": sum_of_all_calculated_iron_or_omit_if_all_null,
-    "total_potassium_mg": sum_of_all_calculated_potassium_or_omit_if_all_null,
-    "total_vitamin_a_re": sum_of_all_calculated_vit_a_or_omit_if_all_null,
-    "total_vitamin_c_mg": sum_of_all_calculated_vit_c_or_omit_if_all_null,
-    "total_vitamin_d_iu": sum_of_all_calculated_vit_d_or_omit_if_all_null,
-    "calorie_target": user_calorie_target,
-    "protein_target": user_protein_target,
-    "calorie_difference": actual_total_minus_target,
-    "protein_difference": actual_total_minus_target
-  },
-  "meal_plan_analysis": {
-    "calorie_goal_status": "Achieved: [actual_calories] vs target [target_calories] (+/- X difference)",
-    "protein_goal_status": "Achieved: [actual_protein]g vs target [target_protein]g (+/- X difference)",
-    "target_achievement": "SUCCESS - All targets met/exceeded" or "FAILED - Explain what targets were missed and why",
-    "dietary_compliance": "All restrictions followed" or "Issues: description",
-    "nutritional_balance": "Assessment of overall nutritional balance",
-    "variety_score": "Good/Excellent variety across stations and food types",
-    "health_rating": "Excellent/Good/Fair - brief explanation",
-    "portion_transparency": "All nutrition values calculated for recommended portions, not menu base portions",
-    "user_comment_compliance": "Followed user's specific requests: [list what was followed]" or "No specific requests in comments",
-    "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
-  }
-}
+  "lunch": [
+    // Same structure as breakfast items
+  ],
+  "dinner": [
+    // Same structure as breakfast items
+  ],
+  "daily_totals": {{
+    "total_calories": sum_all_meal_calories,
+    "total_protein_g": sum_all_meal_protein,
+    "total_carbs_g": sum_all_meal_carbs,
+    "total_fat_g": sum_all_meal_fat,
+    "total_fiber_g": sum_all_meal_fiber,
+    "total_sodium_mg": sum_all_meal_sodium,
+    "calorie_target": user_target_calories,
+    "protein_target": user_target_protein,
+    "calorie_difference": actual_minus_target,
+    "protein_difference": actual_minus_target
+  }},
+  "meal_plan_analysis": {{
+    "calorie_goal_status": "Met: [actual] vs target [target] (+/- difference)",
+    "protein_goal_status": "Met: [actual]g vs target [target]g (+/- difference)",
+    "target_achievement": "SUCCESS - All targets met" or "FAILED - Missing: [what was missed]",
+    "dietary_compliance": "All restrictions followed" or "Issues: [specific issues]",
+    "user_comment_compliance": "Followed: [list user requests]" or "No specific requests",
+    "suggestions": ["tip 1", "tip 2", "tip 3"]
+  }}
+}}
 
-ABSOLUTE REQUIREMENTS - DO NOT COMPROMISE ON THESE:
-1. NEVER go under the user's calorie or protein targets — if targets can't be met with available food, recommend larger portions.
-2. Calculate ALL numeric nutrition values (including micronutrients and any extra keys present) for the actual recommended portions.
-3. Show portion math clearly for at least calories and protein in each item.
-4. User comments override all other requirements.
-5. Total daily calories must be within +50 of target (never more than 50 under).
-6. Total daily protein must meet or exceed target by at least 5g.
-7. Explain your portion calculations in the reason_selected field.
-8. NO TEXT outside the JSON structure.
-9. Use EXACT values from the menu data provided; for missing fields, use null and do not fabricate.
-10. Select 2-4 items per meal for balanced nutrition.
+## CRITICAL SUCCESS CRITERIA:
+✓ Total daily calories ≥ user's calorie target
+✓ Total daily protein ≥ user's protein target  
+✓ All allergens and dietary restrictions avoided
+✓ User's specific comments/requests followed exactly
+✓ 3-5 food items per meal for balanced nutrition
+✓ All nutrition calculations based on recommended portions (not menu base)
+✓ Portion math clearly shown
 
-QUALITY CHECK BEFORE RESPONDING:
-- Verify total calories ≥ target calories.
-- Verify total protein ≥ target protein.
-- Verify all nutrition values reflect recommended portions (not menu base).
-- Verify user's specific comments/requests are addressed.
-- Verify ingredients have NO disclaimer text.
+## BEFORE RESPONDING:
+1. Check: Does total calories meet/exceed target?
+2. Check: Does total protein meet/exceed target?
+3. Check: Are user's specific requests addressed?
+4. Check: Are all dietary restrictions followed?
+5. Check: Is nutrition calculated for recommended portions?
 
-JSON FORMATTING REQUIREMENTS:
-- Use only standard ASCII characters in text fields.
-- Avoid special quotes (use only "straight quotes").
-- No line breaks within string values.
-- Keep all decimal numbers as simple floats (e.g., 42.5, not 42.50).
-- Escape any internal quotes with backslash.
-- Test that your JSON is valid before responding.
+Respond with ONLY the JSON - no additional text or explanations outside the JSON structure.
 """
-
-
-
         
         try:
             print("Generating meal plan with single API call...")
