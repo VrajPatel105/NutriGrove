@@ -234,6 +234,7 @@ If it's Saturday or Sunday, dining halls serve brunch instead of separate breakf
 3. Check: Are user's specific requests addressed?
 4. Check: Are all dietary restrictions followed?
 5. Check: Is nutrition calculated for recommended portions?
+6. ALso make sure that when you respond, you give top 3 recommendations to the user on what they should be doing to maintain. and make sure that they are not too large recommendations.
 
 Respond with ONLY the JSON - no additional text or explanations outside the JSON structure.
 """
