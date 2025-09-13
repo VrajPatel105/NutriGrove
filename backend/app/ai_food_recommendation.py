@@ -19,7 +19,7 @@ class FoodRecommender:
             raise ValueError("Missing GEMINI_API_KEY in .env file")
         
         genai.configure(api_key=gemini_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.5-pro')
         
         # Initialize Supabase
         supabase_url = os.getenv("SUPABASE_URL")
