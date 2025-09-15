@@ -3,23 +3,31 @@ import os
 import time
 from pathlib import Path
 from dotenv import load_dotenv
-import google.generativeai as genai
+# import google.generativeai as genai
+from openai import OpenAI
 from supabase import create_client, Client
 
 class FoodRecommender:
     def __init__(self):
-        """Initialize the AI Food Recommender with Google Gemini"""
+        """Initialize the AI Food Recommender with OpenAI GPT-5"""
         # Load .env from backend/app directory
         env_path = Path(__file__).parent / ".env"
         load_dotenv(env_path)
-        
-        # Initialize Google Gemini
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        if not gemini_key:
-            raise ValueError("Missing GEMINI_API_KEY in .env file")
-        
-        genai.configure(api_key=gemini_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+
+        # Initialize OpenAI GPT-5
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if not openai_key:
+            raise ValueError("Missing OPENAI_API_KEY in .env file")
+
+        self.client = OpenAI(api_key=openai_key)
+
+        # # Initialize Google Gemini (commented out)
+        # gemini_key = os.getenv("GEMINI_API_KEY")
+        # if not gemini_key:
+        #     raise ValueError("Missing GEMINI_API_KEY in .env file")
+        #
+        # genai.configure(api_key=gemini_key)
+        # self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Initialize Supabase
         supabase_url = os.getenv("SUPABASE_URL")
@@ -274,149 +282,23 @@ class FoodRecommender:
   Respond with ONLY the JSON - no additional text or explanations outside the JSON structure.
   """
         
-        # Comprehensive prompt for single API call
-#         prompt = f"""
-# You are an expert nutritionist. Create a complete daily meal plan for a university student using the dining hall menu provided.
-
-# ## INPUT DATA:
-
-# USER PREFERENCES AND GOALS:
-# {json.dumps(user_preferences, indent=2)}
-
-# COMPLETE DINING HALL MENU (ALL AVAILABLE OPTIONS):
-# {json.dumps(formatted_menu, indent=2)}
-
-# ## PRIMARY OBJECTIVES (IN ORDER OF PRIORITY):
-# 1. **Follow user comments/requests EXACTLY** - User-specified foods, portions, or goals override everything else
-# 2. **Meet calorie target** - Must reach or exceed user's calorie goal (never go under)
-# 3. **Meet protein target** - Must reach or exceed user's protein goal (never go under) 
-# 4. **Honor dietary restrictions** - Strictly avoid all allergens and restrictions listed
-# 5. **Provide variety** - Select from different dining stations and food types
-
-# ## PORTION CALCULATION RULES:
-# - Base nutrition values are per menu serving size
-# - Scale ALL nutrients proportionally to your recommended portion
-# - Example: Menu shows "1 egg = 70 cal, 6g protein" → You recommend "3 eggs" → Calculate as "210 cal, 18g protein"
-# - Scale these fields: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, sugar_g, saturated_fat_g, trans_fat_g, cholesterol_mg, calcium_mg, iron_mg, potassium_mg, vitamin_a_re, vitamin_c_mg, vitamin_d_iu
-# - If a nutrient is missing from menu data, use null (don't invent values)
-
-# ## WEEKEND SPECIAL RULE:
-# If it's Saturday or Sunday, dining halls serve brunch instead of separate breakfast/lunch. Plan accordingly with larger portions to meet daily targets.
-
-# ## DATA CLEANING:
-# - Remove any "Disclaimer:" text from ingredients
-# - Clean up extra whitespace and line breaks
-
-# ## REQUIRED JSON OUTPUT FORMAT:
-
-# {{
-#   "breakfast": [
-#     {{
-#       "name": "Exact menu item name",
-#       "station": "Exact station name from menu",
-#       "recommended_portion": "Clear portion description (e.g. '2 eggs', '1.5 cups')",
-#       "serving_size": "Menu base vs recommended (e.g. 'Menu: 1 egg, Recommended: 2 eggs')",
-#       "calories": calculated_total_calories,
-#       "protein_g": calculated_total_protein,
-#       "carbs_g": calculated_total_carbs,
-#       "fat_g": calculated_total_fat,
-#       "fiber_g": calculated_total_fiber,
-#       "sodium_mg": calculated_total_sodium,
-#       "allergens": ["list", "from", "menu"],
-#       "ingredients": "cleaned ingredients without disclaimers",
-#       "per_menu_serving_nutrition": {{
-#         "serving_size": "base serving from menu",
-#         "calories": base_calories,
-#         "protein_g": base_protein,
-#         "carbs_g": base_carbs,
-#         "fat_g": base_fat,
-#         "fiber_g": base_fiber,
-#         "sodium_mg": base_sodium,
-#         "sugar_g": base_sugar_or_null,
-#         "saturated_fat_g": base_sat_fat_or_null,
-#         "trans_fat_g": base_trans_fat_or_null,
-#         "cholesterol_mg": base_cholesterol_or_null,
-#         "calcium_mg": base_calcium_or_null,
-#         "iron_mg": base_iron_or_null,
-#         "potassium_mg": base_potassium_or_null,
-#         "vitamin_a_re": base_vit_a_or_null,
-#         "vitamin_c_mg": base_vit_c_or_null,
-#         "vitamin_d_iu": base_vit_d_or_null
-#       }},
-#       "full_nutrition": {{
-#         "calories": scaled_calories,
-#         "protein_g": scaled_protein,
-#         "carbs_g": scaled_carbs,
-#         "fat_g": scaled_fat,
-#         "fiber_g": scaled_fiber,
-#         "sodium_mg": scaled_sodium,
-#         "sugar_g": scaled_sugar_or_null,
-#         "saturated_fat_g": scaled_sat_fat_or_null,
-#         "trans_fat_g": scaled_trans_fat_or_null,
-#         "cholesterol_mg": scaled_cholesterol_or_null,
-#         "calcium_mg": scaled_calcium_or_null,
-#         "iron_mg": scaled_iron_or_null,
-#         "potassium_mg": scaled_potassium_or_null,
-#         "vitamin_a_re": scaled_vit_a_or_null,
-#         "vitamin_c_mg": scaled_vit_c_or_null,
-#         "vitamin_d_iu": scaled_vit_d_or_null
-#       }},
-#       "portion_math": "Show calculation: 3 servings x 70 cal = 210 cal, 3 x 6g protein = 18g",
-#       "reason_selected": "Explain: 1) Why chosen 2) How portion was calculated 3) How it helps meet targets"
-#     }}
-#   ],
-#   "lunch": [
-#     // Same structure as breakfast items
-#   ],
-#   "dinner": [
-#     // Same structure as breakfast items
-#   ],
-#   "daily_totals": {{
-#     "total_calories": sum_all_meal_calories,
-#     "total_protein_g": sum_all_meal_protein,
-#     "total_carbs_g": sum_all_meal_carbs,
-#     "total_fat_g": sum_all_meal_fat,
-#     "total_fiber_g": sum_all_meal_fiber,
-#     "total_sodium_mg": sum_all_meal_sodium,
-#     "calorie_target": user_target_calories,
-#     "protein_target": user_target_protein,
-#     "calorie_difference": actual_minus_target,
-#     "protein_difference": actual_minus_target
-#   }},
-#   "meal_plan_analysis": {{
-#     "calorie_goal_status": "Met: [actual] vs target [target] (+/- difference)",
-#     "protein_goal_status": "Met: [actual]g vs target [target]g (+/- difference)",
-#     "target_achievement": "SUCCESS - All targets met" or "FAILED - Missing: [what was missed]",
-#     "dietary_compliance": "All restrictions followed" or "Issues: [specific issues]",
-#     "user_comment_compliance": "Followed: [list user requests]" or "No specific requests",
-#     "suggestions": ["tip 1", "tip 2", "tip 3"]
-#   }}
-# }}
-
-# ## CRITICAL SUCCESS CRITERIA:
-# ✓ Total daily calories ≥ user's calorie target
-# ✓ Total daily protein ≥ user's protein target  
-# ✓ All allergens and dietary restrictions avoided
-# ✓ User's specific comments/requests followed exactly
-# ✓ 3-5 food items per meal for balanced nutrition
-# ✓ All nutrition calculations based on recommended portions (not menu base)
-# ✓ Portion math clearly shown
-
-# ## BEFORE RESPONDING:
-# 1. Check: Does total calories meet/exceed target?
-# 2. Check: Does total protein meet/exceed target?
-# 3. Check: Are user's specific requests addressed?
-# 4. Check: Are all dietary restrictions followed?
-# 5. Check: Is nutrition calculated for recommended portions?
-# 6. ALso make sure that when you respond, you give top 3 recommendations to the user on what they should be doing to maintain. and make sure that they are not too large recommendations.
-
-# Respond with ONLY the JSON - no additional text or explanations outside the JSON structure.
-# """
-        
         try:
             print("Generating meal plan with single API call...")
-            response = self.model.generate_content(prompt)
-            ai_response = response.text.strip()
+            # OpenAI GPT-5 API call
+            response = self.client.chat.completions.create(
+                model="gpt-5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an expert nutritionist. Respond with only valid JSON, no additional text."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=4000
+            )
+            ai_response = response.choices[0].message.content.strip()
+
+            # # Gemini API call (commented out)
+            # response = self.model.generate_content(prompt)
+            # ai_response = response.text.strip()
             
             # Clean up response
             if ai_response.startswith('```json'):
