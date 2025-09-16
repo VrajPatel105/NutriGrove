@@ -286,7 +286,7 @@ class FoodRecommender:
             print("Generating meal plan with single API call...")
             # OpenAI GPT-5 API call
             response = self.client.chat.completions.create(
-                model="gpt-5-turbo",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are an expert nutritionist. Respond with only valid JSON, no additional text."},
                     {"role": "user", "content": prompt}
