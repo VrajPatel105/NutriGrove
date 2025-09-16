@@ -17,9 +17,9 @@ class FoodRecommender:
 
         # Initialize Google Gemini
         gemini_key = os.getenv("GEMINI_API_KEY")
-        print(f"GEMINI_API_KEY found: {bool(gemini_key)}")
+        print(f"GEMINI_API_KEY found")
         if gemini_key:
-            print(f"GEMINI_API_KEY starts with: {gemini_key[:10]}...")
+            print(f"GEMINI_API_KEY working")
         if not gemini_key:
             raise ValueError("Missing GEMINI_API_KEY in .env file")
 
@@ -30,7 +30,6 @@ class FoodRecommender:
         except Exception as e:
             raise ValueError(f"Failed to initialize Gemini client: {e}")
 
-        
         # Initialize Supabase
         supabase_url = os.getenv("SUPABASE_URL")
         supabase_key = os.getenv("SUPABASE_ANON_KEY")
