@@ -19,7 +19,11 @@ class FoodRecommender:
         if not openai_key:
             raise ValueError("Missing OPENAI_API_KEY in .env file")
 
-        self.client = OpenAI(api_key=openai_key)
+        try:
+            self.client = OpenAI(api_key=openai_key)
+            print("OpenAI client initialized successfully!")
+        except Exception as e:
+            raise ValueError(f"Failed to initialize OpenAI client: {e}")
 
         # # Initialize Google Gemini (commented out)
         # gemini_key = os.getenv("GEMINI_API_KEY")
@@ -292,7 +296,7 @@ class FoodRecommender:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=4000
+                max_completion_tokens=4000
             )
             ai_response = response.choices[0].message.content.strip()
 
