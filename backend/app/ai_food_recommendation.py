@@ -3,35 +3,33 @@ import os
 import time
 from pathlib import Path
 from dotenv import load_dotenv
-# import google.generativeai as genai
-from openai import OpenAI
+import google.generativeai as genai
 from supabase import create_client, Client
 
 class FoodRecommender:
     def __init__(self):
-        """Initialize the AI Food Recommender with OpenAI GPT-5"""
-        # Load .env from backend/app directory
+        """Initialize the AI Food Recommender with Google Gemini"""
+        # Load .env from backend/app directory (where the file is located)
         env_path = Path(__file__).parent / ".env"
+        print(f"Looking for .env file at: {env_path}")
+        print(f".env file exists: {env_path.exists()}")
         load_dotenv(env_path)
 
-        # Initialize OpenAI GPT-5
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if not openai_key:
-            raise ValueError("Missing OPENAI_API_KEY in .env file")
+        # Initialize Google Gemini
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        print(f"GEMINI_API_KEY found: {bool(gemini_key)}")
+        if gemini_key:
+            print(f"GEMINI_API_KEY starts with: {gemini_key[:10]}...")
+        if not gemini_key:
+            raise ValueError("Missing GEMINI_API_KEY in .env file")
 
         try:
-            self.client = OpenAI(api_key=openai_key)
-            print("OpenAI client initialized successfully!")
+            genai.configure(api_key=gemini_key)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            print("Gemini client initialized successfully!")
         except Exception as e:
-            raise ValueError(f"Failed to initialize OpenAI client: {e}")
+            raise ValueError(f"Failed to initialize Gemini client: {e}")
 
-        # # Initialize Google Gemini (commented out)
-        # gemini_key = os.getenv("GEMINI_API_KEY")
-        # if not gemini_key:
-        #     raise ValueError("Missing GEMINI_API_KEY in .env file")
-        #
-        # genai.configure(api_key=gemini_key)
-        # self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Initialize Supabase
         supabase_url = os.getenv("SUPABASE_URL")
@@ -112,198 +110,184 @@ class FoodRecommender:
         # Format data for AI
         formatted_menu = self.format_menu_data(menu_items)
         prompt = f"""
-  You are an expert nutritionist. Create a complete daily meal plan for a university student using the dining hall menu provided.
+You are an expert nutritionist. Create a complete daily meal plan for a university student using the dining hall menu provided.
 
-  ## INPUT DATA:
+## INPUT DATA:
 
-  USER PREFERENCES AND GOALS:
-  {json.dumps(user_preferences, indent=2)}
+USER PREFERENCES AND GOALS:
+{json.dumps(user_preferences, indent=2)}
 
-  COMPLETE DINING HALL MENU (ALL AVAILABLE OPTIONS):
-  {json.dumps(formatted_menu, indent=2)}
+COMPLETE DINING HALL MENU (ALL AVAILABLE OPTIONS):
+{json.dumps(formatted_menu, indent=2)}
 
-  ## PRIMARY OBJECTIVES (IN ORDER OF PRIORITY):
-  1. **Follow user comments/requests EXACTLY** - User-specified foods, portions, or goals override everything else
-  2. **Meet calorie target** - Must reach or exceed user's calorie goal (never go under)
-  3. **Meet protein target** - Must reach or exceed user's protein goal (never go under)
-  4. **Honor dietary restrictions** - Strictly avoid all allergens and restrictions listed
-  5. **Provide variety** - Select from different dining stations and food types
+## PRIMARY OBJECTIVES (IN ORDER OF PRIORITY):
+1. **Follow user comments/requests EXACTLY** - User-specified foods, portions, or goals override everything else
+2. **Meet calorie target** - Must reach or exceed user's calorie goal (never go under)
+3. **Meet protein target** - Must reach or exceed user's protein goal (never go under)
+4. **Honor dietary restrictions** - Strictly avoid all allergens and restrictions listed
+5. **Provide variety** - Select from different dining stations and food types
 
-  ## CRITICAL NUTRITION BALANCE RULE:
-  **AVOID EXCESSIVE PROTEIN OVERSHOOT** - While meeting protein targets is important, do NOT dramatically exceed protein goals when it's unnecessary. If user needs 150g protein, aim     
-  for 150-180g, NOT 250g+. Balance protein sources with appropriate carbs and fats for optimal nutrition ratios.
+## CRITICAL NUTRITION BALANCE RULE:
+**AVOID EXCESSIVE PROTEIN OVERSHOOT** - While meeting protein targets is important, do NOT dramatically exceed protein goals when it's unnecessary. If user needs 150g protein, aim for 150-180g, NOT 250g+. Balance protein sources with appropriate carbs and fats for optimal nutrition ratios.
 
-  ## PORTION CALCULATION RULES:
-  - Base nutrition values are per menu serving size
-  - Scale ALL nutrients proportionally to your recommended portion
-  - Example: Menu shows "1 egg = 70 cal, 6g protein" → You recommend "3 eggs" → Calculate as "210 cal, 18g protein"
-  - Scale these fields: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, sugar_g, saturated_fat_g, trans_fat_g, cholesterol_mg, calcium_mg, iron_mg, potassium_mg,
-  vitamin_a_re, vitamin_c_mg, vitamin_d_iu
-  - If a nutrient is missing from menu data, use null (don't invent values)
+## PORTION CALCULATION RULES:
+- Base nutrition values are per menu serving size
+- Scale ALL nutrients proportionally to your recommended portion
+- Example: Menu shows "1 egg = 70 cal, 6g protein" → You recommend "3 eggs" → Calculate as "210 cal, 18g protein"
+- Scale these fields: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, sugar_g, saturated_fat_g, trans_fat_g, cholesterol_mg, calcium_mg, iron_mg, potassium_mg, vitamin_a_re, vitamin_c_mg, vitamin_d_iu
+- If a nutrient is missing from menu data, use null (don't invent values)
 
-  ## INSUFFICIENT FOOD HANDLING:
-  If the available menu items cannot meet the user's calorie/protein targets even with maximum reasonable portions:
-  1. **Increase serving sizes** of existing recommended items proportionally
-  2. **Add more food items** from available menu options
-  3. **Prioritize calorie-dense and protein-rich foods** to efficiently meet targets
-  4. **Example**: If you're 500 calories short, increase portions of rice, pasta, or protein items rather than giving up
+## INSUFFICIENT FOOD HANDLING:
+If the available menu items cannot meet the user's calorie/protein targets even with maximum reasonable portions:
+1. **Increase serving sizes** of existing recommended items proportionally
+2. **Add more food items** from available menu options
+3. **Prioritize calorie-dense and protein-rich foods** to efficiently meet targets
+4. **Example**: If you're 500 calories short, increase portions of rice, pasta, or protein items rather than giving up
 
-  ## WEEKEND SPECIAL RULE:
-  If it's Saturday or Sunday, dining halls serve brunch instead of separate breakfast/lunch. Plan accordingly with larger portions to meet daily targets.
+## WEEKEND SPECIAL RULE:
+If it's Saturday or Sunday, dining halls serve brunch instead of separate breakfast/lunch. Plan accordingly with larger portions to meet daily targets.
 
-  ## DATA CLEANING:
-  - Remove any "Disclaimer:" text from ingredients
-  - Clean up extra whitespace and line breaks
+## DATA CLEANING:
+- Remove any "Disclaimer:" text from ingredients
+- Clean up extra whitespace and line breaks
 
-  ## CRITICAL: JSON STRUCTURE ORDER
-  The JSON response MUST maintain this exact order of fields for every food item:
-  1. name, 2. station, 3. recommended_portion, 4. serving_size, 5. calories, 6. protein_g, 7. carbs_g, 8. fat_g, 9. fiber_g, 10. sodium_mg, 11. allergens, 12. ingredients, 13.
-  per_menu_serving_nutrition, 14. full_nutrition, 15. portion_math, 16. reason_selected
+## CRITICAL: JSON STRUCTURE ORDER
+The JSON response MUST maintain this exact order of fields for every food item:
+1. name, 2. station, 3. recommended_portion, 4. serving_size, 5. calories, 6. protein_g, 7. carbs_g, 8. fat_g, 9. fiber_g, 10. sodium_mg, 11. allergens, 12. ingredients, 13. per_menu_serving_nutrition, 14. full_nutrition, 15. portion_math, 16. reason_selected
 
-  And this exact meal order: breakfast, lunch, dinner, daily_totals, meal_plan_analysis
+And this exact meal order: breakfast, lunch, dinner, daily_totals, meal_plan_analysis
 
-  ## REQUIRED JSON OUTPUT FORMAT:
+## REQUIRED JSON OUTPUT FORMAT:
 
-  {{
-    "breakfast": [
-      {{
-        "name": "Exact menu item name",
-        "station": "Exact station name from menu",
-        "recommended_portion": "Clear portion description (e.g. '2 eggs', '1.5 cups')",
-        "serving_size": "Menu base vs recommended (e.g. 'Menu: 1 egg, Recommended: 2 eggs')",
-        "calories": calculated_total_calories,
-        "protein_g": calculated_total_protein,
-        "carbs_g": calculated_total_carbs,
-        "fat_g": calculated_total_fat,
-        "fiber_g": calculated_total_fiber,
-        "sodium_mg": calculated_total_sodium,
-        "allergens": ["list", "from", "menu"],
-        "ingredients": "cleaned ingredients without disclaimers",
-        "per_menu_serving_nutrition": {{
-          "serving_size": "base serving from menu",
-          "calories": base_calories,
-          "protein_g": base_protein,
-          "carbs_g": base_carbs,
-          "fat_g": base_fat,
-          "fiber_g": base_fiber,
-          "sodium_mg": base_sodium,
-          "sugar_g": base_sugar_or_null,
-          "saturated_fat_g": base_sat_fat_or_null,
-          "trans_fat_g": base_trans_fat_or_null,
-          "cholesterol_mg": base_cholesterol_or_null,
-          "calcium_mg": base_calcium_or_null,
-          "iron_mg": base_iron_or_null,
-          "potassium_mg": base_potassium_or_null,
-          "vitamin_a_re": base_vit_a_or_null,
-          "vitamin_c_mg": base_vit_c_or_null,
-          "vitamin_d_iu": base_vit_d_or_null
-        }},
-        "full_nutrition": {{
-          "calories": scaled_calories,
-          "protein_g": scaled_protein,
-          "carbs_g": scaled_carbs,
-          "fat_g": scaled_fat,
-          "fiber_g": scaled_fiber,
-          "sodium_mg": scaled_sodium,
-          "sugar_g": scaled_sugar_or_null,
-          "saturated_fat_g": scaled_sat_fat_or_null,
-          "trans_fat_g": scaled_trans_fat_or_null,
-          "cholesterol_mg": scaled_cholesterol_or_null,
-          "calcium_mg": scaled_calcium_or_null,
-          "iron_mg": scaled_iron_or_null,
-          "potassium_mg": scaled_potassium_or_null,
-          "vitamin_a_re": scaled_vit_a_or_null,
-          "vitamin_c_mg": scaled_vit_c_or_null,
-          "vitamin_d_iu": scaled_vit_d_or_null
-        }},
-        "portion_math": "Show calculation: 3 servings x 70 cal = 210 cal, 3 x 6g protein = 18g",
-        "reason_selected": "Explain: 1) Why chosen 2) How portion was calculated 3) How it helps meet targets"
-      }}
-    ],
-    "lunch": [
-      // Same structure as breakfast items
-    ],
-    "dinner": [
-      // Same structure as breakfast items
-    ],
-    "daily_totals": {{
-      "total_calories": sum_all_meal_calories,
-      "total_protein_g": sum_all_meal_protein,
-      "total_carbs_g": sum_all_meal_carbs,
-      "total_fat_g": sum_all_meal_fat,
-      "total_fiber_g": sum_all_meal_fiber,
-      "total_sodium_mg": sum_all_meal_sodium,
-      "calorie_target": user_target_calories,
-      "protein_target": user_target_protein,
-      "calorie_difference": actual_minus_target,
-      "protein_difference": actual_minus_target
-    }},
-    "meal_plan_analysis": {{
-      "calorie_goal_status": "Met: [actual] vs target [target] (+/- difference)",
-      "protein_goal_status": "Met: [actual]g vs target [target]g (+/- difference)",
-      "target_achievement": "SUCCESS - All targets met" or "FAILED - Missing: [what was missed]",
-      "dietary_compliance": "All restrictions followed" or "Issues: [specific issues]",
-      "user_comment_compliance": "Followed: [list user requests]" or "No specific requests",
-      "nutrition_balance_check": "Balanced nutrition ratios achieved" or "Warning: Excessive protein overshoot",
-      "suggestions": ["tip 1", "tip 2", "tip 3"]
+{{
+  "breakfast": [
+    {{
+      "name": "Exact menu item name",
+      "station": "Exact station name from menu",
+      "recommended_portion": "Clear portion description (e.g. '2 eggs', '1.5 cups')",
+      "serving_size": "Menu base vs recommended (e.g. 'Menu: 1 egg, Recommended: 2 eggs')",
+      "calories": calculated_total_calories,
+      "protein_g": calculated_total_protein,
+      "carbs_g": calculated_total_carbs,
+      "fat_g": calculated_total_fat,
+      "fiber_g": calculated_total_fiber,
+      "sodium_mg": calculated_total_sodium,
+      "allergens": ["list", "from", "menu"],
+      "ingredients": "cleaned ingredients without disclaimers",
+      "per_menu_serving_nutrition": {{
+        "serving_size": "base serving from menu",
+        "calories": base_calories,
+        "protein_g": base_protein,
+        "carbs_g": base_carbs,
+        "fat_g": base_fat,
+        "fiber_g": base_fiber,
+        "sodium_mg": base_sodium,
+        "sugar_g": base_sugar_or_null,
+        "saturated_fat_g": base_sat_fat_or_null,
+        "trans_fat_g": base_trans_fat_or_null,
+        "cholesterol_mg": base_cholesterol_or_null,
+        "calcium_mg": base_calcium_or_null,
+        "iron_mg": base_iron_or_null,
+        "potassium_mg": base_potassium_or_null,
+        "vitamin_a_re": base_vit_a_or_null,
+        "vitamin_c_mg": base_vit_c_or_null,
+        "vitamin_d_iu": base_vit_d_or_null
+      }},
+      "full_nutrition": {{
+        "calories": scaled_calories,
+        "protein_g": scaled_protein,
+        "carbs_g": scaled_carbs,
+        "fat_g": scaled_fat,
+        "fiber_g": scaled_fiber,
+        "sodium_mg": scaled_sodium,
+        "sugar_g": scaled_sugar_or_null,
+        "saturated_fat_g": scaled_sat_fat_or_null,
+        "trans_fat_g": scaled_trans_fat_or_null,
+        "cholesterol_mg": scaled_cholesterol_or_null,
+        "calcium_mg": scaled_calcium_or_null,
+        "iron_mg": scaled_iron_or_null,
+        "potassium_mg": scaled_potassium_or_null,
+        "vitamin_a_re": scaled_vit_a_or_null,
+        "vitamin_c_mg": scaled_vit_c_or_null,
+        "vitamin_d_iu": scaled_vit_d_or_null
+      }},
+      "portion_math": "Show calculation: 3 servings x 70 cal = 210 cal, 3 x 6g protein = 18g",
+      "reason_selected": "Explain: 1) Why chosen 2) How portion was calculated 3) How it helps meet targets"
     }}
+  ],
+  "lunch": [
+    // Same structure as breakfast items
+  ],
+  "dinner": [
+    // Same structure as breakfast items
+  ],
+  "daily_totals": {{
+    "total_calories": sum_all_meal_calories,
+    "total_protein_g": sum_all_meal_protein,
+    "total_carbs_g": sum_all_meal_carbs,
+    "total_fat_g": sum_all_meal_fat,
+    "total_fiber_g": sum_all_meal_fiber,
+    "total_sodium_mg": sum_all_meal_sodium,
+    "calorie_target": user_target_calories,
+    "protein_target": user_target_protein,
+    "calorie_difference": actual_minus_target,
+    "protein_difference": actual_minus_target
+  }},
+  "meal_plan_analysis": {{
+    "calorie_goal_status": "Met: [actual] vs target [target] (+/- difference)",
+    "protein_goal_status": "Met: [actual]g vs target [target]g (+/- difference)",
+    "target_achievement": "SUCCESS - All targets met" or "FAILED - Missing: [what was missed]",
+    "dietary_compliance": "All restrictions followed" or "Issues: [specific issues]",
+    "user_comment_compliance": "Followed: [list user requests]" or "No specific requests",
+    "nutrition_balance_check": "Balanced nutrition ratios achieved" or "Warning: Excessive protein overshoot",
+    "suggestions": ["tip 1", "tip 2", "tip 3"]
   }}
+}}
 
-  ## TOP 3 ACTIONABLE RECOMMENDATIONS:
-  In meal_plan_analysis.suggestions, provide exactly 3 specific, actionable tips (max 15 words each):
-  - Focus on nutrition optimization, meal timing, or food combinations
-  - Make them specific to this user's goals and selected foods
-  - Examples: "Add Greek yogurt for extra protein", "Drink water 30min before meals", "Have largest meal post-workout"
+## TOP 3 ACTIONABLE RECOMMENDATIONS:
+In meal_plan_analysis.suggestions, provide exactly 3 specific, actionable tips (max 15 words each):
+- Focus on nutrition optimization, meal timing, or food combinations
+- Make them specific to this user's goals and selected foods
+- Examples: "Add Greek yogurt for extra protein", "Drink water 30min before meals", "Have largest meal post-workout"
 
-  ## OUTPUT VALIDATION:
-  Before responding, verify:
-  - JSON is valid and parseable
-  - All required fields present for each food item
-  - Field order matches specification exactly
-  - Calculations are mathematically correct
-  - No placeholder text like [actual] remains in output
-  - Protein levels are balanced (not excessively high)
-  - If targets aren't met, portions have been increased appropriately
+## OUTPUT VALIDATION:
+Before responding, verify:
+- JSON is valid and parseable
+- All required fields present for each food item
+- Field order matches specification exactly
+- Calculations are mathematically correct
+- No placeholder text like [actual] remains in output
+- Protein levels are balanced (not excessively high)
+- If targets aren't met, portions have been increased appropriately
 
-  ## CRITICAL SUCCESS CRITERIA:
-  ✓ Total daily calories ≥ user's calorie target (increase portions if needed)
-  ✓ Total daily protein ≥ user's protein target (but avoid 50%+ overshoot)
-  ✓ All allergens and dietary restrictions avoided
-  ✓ User's specific comments/requests followed exactly
-  ✓ 3-5 food items per meal for balanced nutrition
-  ✓ All nutrition calculations based on recommended portions (not menu base)
-  ✓ Portion math clearly shown
-  ✓ Balanced macronutrient ratios maintained
+## CRITICAL SUCCESS CRITERIA:
+✓ Total daily calories ≥ user's calorie target (increase portions if needed)
+✓ Total daily protein ≥ user's protein target (but avoid 50%+ overshoot)
+✓ All allergens and dietary restrictions avoided
+✓ User's specific comments/requests followed exactly
+✓ 3-5 food items per meal for balanced nutrition
+✓ All nutrition calculations based on recommended portions (not menu base)
+✓ Portion math clearly shown
+✓ Balanced macronutrient ratios maintained
 
-  ## BEFORE RESPONDING:
-  1. Check: Does total calories meet/exceed target?
-  2. Check: Does total protein meet/exceed target without excessive overshoot?
-  3. Check: Are user's specific requests addressed?
-  4. Check: Are all dietary restrictions followed?
-  5. Check: Is nutrition calculated for recommended portions?
-  6. Check: If targets aren't met, have you increased portions appropriately?
+## BEFORE RESPONDING:
+1. Check: Does total calories meet/exceed target?
+2. Check: Does total protein meet/exceed target without excessive overshoot?
+3. Check: Are user's specific requests addressed?
+4. Check: Are all dietary restrictions followed?
+5. Check: Is nutrition calculated for recommended portions?
+6. Check: If targets aren't met, have you increased portions appropriately?
 
-  Respond with ONLY the JSON - no additional text or explanations outside the JSON structure.
-  """
+Respond with ONLY the JSON - no additional text or explanations outside the JSON structure.
+"""
         
         try:
             print("Generating meal plan with single API call...")
-            # OpenAI GPT-5 API call
-            response = self.client.chat.completions.create(
-                model="gpt-5",
-                messages=[
-                    {"role": "system", "content": "You are an expert nutritionist. Respond with only valid JSON, no additional text."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_completion_tokens=4000
-            )
-            ai_response = response.choices[0].message.content.strip()
+            # Gemini API call
+            response = self.model.generate_content(prompt)
+            ai_response = response.text.strip()
 
-            # # Gemini API call (commented out)
-            # response = self.model.generate_content(prompt)
-            # ai_response = response.text.strip()
-            
+
             # Clean up response
             if ai_response.startswith('```json'):
                 ai_response = ai_response.replace('```json', '').replace('```', '').strip()
