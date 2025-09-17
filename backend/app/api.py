@@ -1,8 +1,8 @@
 # Using fastapi for getting response and sending resopnses to the user
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from model.schema import UserInput
-from ai_food_recommendation import FoodRecommender
+from backend.app.model.schema import UserInput
+from backend.app.ai_food_recommendation import FoodRecommender
 
 recommender = FoodRecommender()
 app = FastAPI()
@@ -32,6 +32,11 @@ def recommendations(data: UserInput):
     schedule = recommender.get_daily_meal_schedule(user_preferences)
 
     return JSONResponse(status_code=200, content=schedule)
+
+# Adding a new api endpoint for getting the entire menu data. Used the function from class FoodRecommender.
+@app.get('/menu')
+def todays_menu():
+    return recommender.get_all_menu_data()
 
 
 #   Essential Parameters (definitely add these):
