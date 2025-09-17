@@ -1,7 +1,7 @@
 # Using fastapi for getting response and sending resopnses to the user
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from backend.app.model.schema import UserInput
+from model.schema import UserInput
 from ai_food_recommendation import FoodRecommender
 
 recommender = FoodRecommender()
