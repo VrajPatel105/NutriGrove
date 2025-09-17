@@ -33,11 +33,10 @@ def recommendations(data: UserInput):
 
     return JSONResponse(status_code=200, content=schedule)
 
-# Adding a new api endpoint for getting the entire menu data. Used the function from class FoodRecommender.
-@app.get('/menu')
-def todays_menu():
-    return recommender.get_all_menu_data()
-
+# Adding a new api endpoint for getting the entire menu data. Used the function from class FoodRecommender. : EDIT - will need to figure it out later on.
+# @app.get('/menu')
+# def todays_menu():
+#     return recommender.get_all_menu_data()
 
 #   Essential Parameters (definitely add these):
 # age
