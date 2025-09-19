@@ -25,7 +25,7 @@ class FoodRecommender:
 
         try:
             genai.configure(api_key=gemini_key)
-            self.model = genai.GenerativeModel('gemini-1.5-pro', max_output_tokens=8000, temperature=1,candidate_count=1,)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
             print("Gemini client initialized successfully!")
         except Exception as e:
             raise ValueError(f"Failed to initialize Gemini client: {e}")
