@@ -25,7 +25,7 @@ class FoodRecommender:
 
         try:
             genai.configure(api_key=gemini_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.model = genai.GenerativeModel('Gemini 1.5 Flash-8B') # trying tyhe 8B model for now. Just to check the speed.
             print("Gemini client initialized successfully!")
         except Exception as e:
             raise ValueError(f"Failed to initialize Gemini client: {e}")
