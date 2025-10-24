@@ -91,3 +91,7 @@ wheel==0.45.1
 wordcloud==1.9.4
 wsproto==1.2.0
 xlsxwriter==3.2.5
+pytest==8.1.1
+pytest-asyncio==0.23.6
+pytest-cov==5.0.0
+httpx==0.28.1
