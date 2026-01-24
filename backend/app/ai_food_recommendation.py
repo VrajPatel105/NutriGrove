@@ -9,8 +9,8 @@ from supabase import create_client, Client
 class FoodRecommender:
     def __init__(self):
         """Initialize the AI Food Recommender with Google Gemini"""
-        # Load .env from backend/app directory (where the file is located)
-        env_path = Path(__file__).parent / ".env"
+        # Load .env from project root (2 levels up from this file)
+        env_path = Path(__file__).parent.parent.parent / ".env"
         print(f"Looking for .env file at: {env_path}")
         print(f".env file exists: {env_path.exists()}")
         load_dotenv(env_path)

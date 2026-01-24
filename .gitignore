@@ -16,3 +16,9 @@ venv/
 # IDE
 .vscode/
 .idea/
+
+# Google Cloud & Sensitive Files
+*.json
+!requirements*.json
+!.github/workflows/*.json
+subtle-photon-*.json

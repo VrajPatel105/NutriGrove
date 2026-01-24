@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, computed_field, field_validator
-from typing import Literal, Annotated
+from typing import Literal, Annotated, Optional, List, Dict
+from datetime import datetime, date
 
 class UserInput(BaseModel):
     age: Annotated[int,Field(...,gt=0, lt=100, description='Age of the User')]
@@ -21,6 +22,111 @@ class UserInput(BaseModel):
     @property
     def bmi(self) -> float:
         return self.weight/(self.height**2)
+
+
+# ============================================
+# NEW MODELS FOR WHATSAPP NUTRITION COACH
+# ============================================
+
+class UserProfile(BaseModel):
+    """User profile for WhatsApp nutrition coach"""
+    phone_number: str
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    weight: Optional[int] = None  # lbs
+    height: Optional[int] = None  # cm
+    activity_level: Optional[str] = None
+    goal: Optional[str] = None
+    diet: Optional[str] = None
+    dietary_restrictions: Optional[str] = None
+    calories_target: Optional[int] = None
+    protein_target: Optional[int] = None
+    carbs_target: Optional[int] = None
+    fat_target: Optional[int] = None
+    allergens: Optional[List[str]] = []
+    dislikes: Optional[List[str]] = []
+
+
+class FoodLogEntry(BaseModel):
+    """Single food log entry"""
+    phone_number: str
+    date: date
+    meal_type: str  # breakfast/lunch/dinner/snack
+    food_name: str
+    portion: str
+    calories: Optional[int] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
+    fiber_g: Optional[float] = None
+    sodium_mg: Optional[float] = None
+    sugar_g: Optional[float] = None
+    was_planned: bool = False
+    is_external: bool = False
+    notes: Optional[str] = None
+
+
+class DailySummary(BaseModel):
+    """Daily nutrition summary"""
+    phone_number: str
+    date: date
+    planned_calories: Optional[int] = None
+    actual_calories: Optional[int] = None
+    planned_protein: Optional[int] = None
+    actual_protein: Optional[float] = None
+    actual_carbs: Optional[float] = None
+    actual_fat: Optional[float] = None
+    actual_fiber: Optional[float] = None
+    adherence_score: Optional[float] = None
+    meals_logged: int = 0
+    notes: Optional[str] = None
+    synced_to_sheets: bool = False
+
+
+class WhatsAppMessage(BaseModel):
+    """Incoming WhatsApp message"""
+    From: str  # Phone number with "whatsapp:" prefix
+    Body: str  # Message text
+    MessageSid: Optional[str] = None
+
+
+class ConversationContext(BaseModel):
+    """Conversation state and context"""
+    phone_number: str
+    current_phase: Optional[str] = None
+    context_data: Optional[Dict] = {}
+    last_interaction: Optional[datetime] = None
+
+
+class MenuSearchParams(BaseModel):
+    """Parameters for menu search"""
+    meal_type: Optional[str] = None
+    min_protein: Optional[int] = None
+    max_calories: Optional[int] = None
+    exclude_allergens: Optional[List[str]] = []
+    station: Optional[str] = None
+    limit: int = 10
+
+
+class FoodItem(BaseModel):
+    """Food item from menu (minimal data)"""
+    name: str
+    station: Optional[str] = None
+    meal_type: Optional[str] = None
+    calories: int
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    allergens: Optional[List[str]] = []
+
+
+class DailyProgress(BaseModel):
+    """Daily nutrition progress"""
+    actual: Dict[str, float]
+    target: Dict[str, int]
+    remaining: Dict[str, float]
+    meals_logged: int
+    adherence: Optional[float] = None
     
 
 """ Additional api parameters added (on date : 09/09/2025) ~ Vraj :) :   Essential Parameters (definitely add these):
