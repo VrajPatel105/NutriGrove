@@ -130,3 +130,8 @@ aiohttp==3.11.11
 
 # Date/Time parsing
 python-dateutil==2.9.0.post0
+
+# WhatsApp Coach dependencies
+APScheduler==3.11.0
+tzlocal==5.2
+aiohttp==3.11.11
