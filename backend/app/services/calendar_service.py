@@ -93,9 +93,17 @@ class CalendarService:
                     f"  {food['calories']} cal, {food['protein_g']}g protein"
                 )
 
-            # Add totals
-            total_cal = sum(f.get('calories', 0) for f in foods)
-            total_protein = sum(f.get('protein_g', 0) for f in foods)
+            # Add totals - handle None values safely
+            def safe_num(value, default=0):
+                try:
+                    if value is None:
+                        return default
+                    return float(value)
+                except (ValueError, TypeError):
+                    return default
+
+            total_cal = sum(safe_num(f.get('calories')) for f in foods)
+            total_protein = sum(safe_num(f.get('protein_g')) for f in foods)
             description_lines.append(f"\nTotal: {total_cal} cal, {total_protein}g protein")
 
             description = '\n'.join(description_lines)

@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(requirements.txt)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(python check_setup.py:*)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip show anthropic)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip uninstall anthropic -y)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip install anthropic==0.39.0)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -c \"import anthropic; print(f''Version: {anthropic.__version__}''); client = anthropic.Anthropic(api_key=''sk-test-123''); print(''Client created successfully'')\")",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip show httpx)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip show httpcore)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip install \"httpcore<1.0\" --force-reinstall)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip install \"httpx<0.28\" --force-reinstall)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -c \"import anthropic; print(f''Version: {anthropic.__version__}''); client = anthropic.Anthropic(api_key=''sk-test-123''); print(''✅ Client created successfully - no proxies error!'')\")",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -c \"import anthropic; print(f''Version: {anthropic.__version__}''); client = anthropic.Anthropic(api_key=''sk-test-123''); print(''Client created successfully!'')\")",
+      "Bash(find:*)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m uvicorn backend.app.api:app --host 0.0.0.0 --port 8000)",
+      "Bash(ngrok http:*)",
+      "Bash(curl:*)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m uvicorn backend.app.api:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(python:*)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip install --upgrade anthropic)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(\"C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" \"c:\\My Projects\\Coding Projects\\NutriGrove\\NutriGrove Backend\\clear_conversation.py\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

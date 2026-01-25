@@ -16,6 +16,7 @@ from .food_logger import FoodLogger
 from .nutrition_estimator import NutritionEstimator
 from ..utils.date_parser import DateParser
 from ..utils.food_parser import FoodParser
+from ..config.user_health_profile import VRAJ_HEALTH_PROFILE
 
 
 class ConversationalAgent:
@@ -88,8 +89,8 @@ class ConversationalAgent:
         try:
             # Call Claude API
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=2000,
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=4096,  # Increased to allow longer responses
                 system=self.get_system_prompt(profile),
                 messages=messages,
                 tools=self.get_function_definitions()
@@ -112,8 +113,8 @@ class ConversationalAgent:
 
                 # Get final response from Claude with function results
                 final_response = self.client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=2000,
+                    model="claude-sonnet-4-5-20250929",
+                    max_tokens=4096,
                     system=self.get_system_prompt(profile),
                     messages=messages
                 )
@@ -121,18 +122,39 @@ class ConversationalAgent:
                 response_text = self.extract_text(final_response.content)
 
                 # Add final assistant message to history
-                messages.append({
-                    "role": "assistant",
-                    "content": response_text
-                })
+                # IMPORTANT: Save the full content (not just text) to preserve any tool_use blocks
+                if response_text:
+                    # If there's text, save the full content to preserve structure
+                    messages.append({
+                        "role": "assistant",
+                        "content": final_response.content  # Save full content, not just text
+                    })
+                else:
+                    # If Claude returned no text after function call, this is an error
+                    # Return a helpful message instead of "Done."
+                    response_text = "I found some options but had trouble formatting the response. Could you ask me again? (e.g., 'show me lunch options')"
+                    messages.append({
+                        "role": "assistant",
+                        "content": response_text
+                    })
+                    print(f"[ERROR] Claude returned empty content after tool use. Stop reason: {final_response.stop_reason}")
             else:
                 response_text = self.extract_text(response.content)
 
                 # Add assistant message to history
-                messages.append({
-                    "role": "assistant",
-                    "content": response_text
-                })
+                # IMPORTANT: Save the full content to preserve structure
+                if response_text:
+                    messages.append({
+                        "role": "assistant",
+                        "content": response.content  # Save full content, not just text
+                    })
+                else:
+                    # Fallback if no text extracted
+                    response_text = "Okay."
+                    messages.append({
+                        "role": "assistant",
+                        "content": response_text
+                    })
 
             # Update conversation state
             await self.save_conversation_state(phone_number, messages, response_text)
@@ -140,7 +162,9 @@ class ConversationalAgent:
             return response_text
 
         except Exception as e:
+            import traceback
             print(f"Error in conversational agent: {e}")
+            traceback.print_exc()
             return "Sorry, I encountered an error. Please try again."
 
     def get_system_prompt(self, user_profile: Dict) -> str:
@@ -171,9 +195,68 @@ USER PROFILE:
         else:
             profile_summary = "USER PROFILE: Not set up yet. Ask user to provide their info."
 
+        # Get health profile information
+        health_profile = VRAJ_HEALTH_PROFILE
+        glucose_current = health_profile['blood_work_results']['glucose_fasting']['value']
+        glucose_target = health_profile['health_conditions']['glucose_management']['target_glucose']
+
+        # Get day of week for training day check
+        day_of_week = now.strftime('%A')
+        is_training_day = day_of_week in ['Monday', 'Wednesday', 'Friday']
+
         return f"""You are Vraj's personal AI nutrition coach via WhatsApp.
 
 {profile_summary}
+
+CRITICAL HEALTH CONTEXT:
+==========================================
+GLUCOSE MANAGEMENT - HIGHEST PRIORITY
+==========================================
+⚠️ Current fasting glucose: {glucose_current} mg/dL (borderline prediabetic)
+🎯 Target: {glucose_target}
+📅 Next blood test: April 2026
+
+MANDATORY GLUCOSE MANAGEMENT PROTOCOL:
+1. **Meal Sequencing (NON-NEGOTIABLE)**:
+   - ALWAYS eat in this order: Vegetables → Protein → Carbs → Treats
+   - This reduces glucose spikes by 30-40%
+   - Remind user of this order for EVERY meal
+
+2. **Post-Meal Activity**:
+   - Walk 10-15 minutes after high-carb meals (pizza, pasta, rice)
+   - ALWAYS remind user to walk after these meals
+
+3. **Pizza Protocol** (STRICTLY ENFORCED):
+   - Current day: {day_of_week} {"✅ TRAINING DAY" if is_training_day else "❌ NON-TRAINING DAY"}
+   - Pizza ONLY allowed on: Monday, Wednesday, Friday (training days)
+   - Pizza ONLY allowed post-workout (within 2 hours)
+   - Maximum 2-3 times per week total
+   - Maximum 3-4 slices per meal
+   - MUST be paired with large salad eaten FIRST
+   - MUST walk 10-15 minutes after eating
+   - If user asks about pizza on non-training day: Firmly remind about glucose management and training day rule
+
+4. **Carb Hierarchy**:
+   - ✅ BEST: Brown rice, quinoa, beans, lentils, chickpeas (high fiber + protein)
+   - ⚠️ MODERATE: White rice (small portions), whole wheat pasta
+   - ❌ LIMIT: White bread, pastries
+   - 🚫 AVOID: Soda, candy, sugary drinks
+
+5. **Protein Buffer Strategy**:
+   - 25-35g protein per meal, eaten BEFORE carbs
+   - Slows carb absorption and reduces glucose spikes
+   - Remind user if they log carbs without sufficient protein
+
+6. **Fiber Requirements**:
+   - Every meal must include high-fiber foods
+   - Vegetables with EVERY meal (eaten first)
+   - Beans/lentils daily (best plant protein + fiber)
+
+NUTRITION TARGETS:
+- Daily Calories: 2800
+- Daily Protein: 150g (range: 140-175g)
+- Weight: 139 lbs → Target: 154 lbs
+- Goal: Lean muscle gain while managing glucose
 
 YOUR ROLE:
 You are a friendly, knowledgeable nutrition coach who helps Vraj:
@@ -184,7 +267,7 @@ You are a friendly, knowledgeable nutrition coach who helps Vraj:
 
 PERSONALITY:
 - Conversational and natural (like texting a friend)
-- Use emojis appropriately (🍳 🥗 🍽️ 💪 ✅ etc.)
+- Use emojis appropriately (food emojis, checkmarks, etc.)
 - Be encouraging but honest
 - Keep messages concise (WhatsApp style - under 200 words)
 - Don't be overly formal or robotic
@@ -199,9 +282,9 @@ CRITICAL CAPABILITIES:
    - Track today's plan vs what's been logged
 
 2. PARSE NATURAL LANGUAGE:
-   - "ate eggs and toast" → extract: eggs, toast
-   - "had some chips" → estimate portion, log
-   - "the salmon" → refer to earlier context or today's menu
+   - "ate eggs and toast" -> extract: eggs, toast
+   - "had some chips" -> estimate portion, log
+   - "the salmon" -> refer to earlier context or today's menu
    - Handle typos, variations, casual language
 
 3. SMART DECISION MAKING:
@@ -210,15 +293,15 @@ CRITICAL CAPABILITIES:
    - When to call functions vs when to respond directly
 
 4. FOOD LOGGING INTELLIGENCE:
-   - If food is from dining hall → use search_menu_minimal or log_food_item
-   - If food is external (Ferrero Rocher, Starbucks, etc.) → use your built-in knowledge to estimate
-   - If portion unclear → ask "how much approximately?"
-   - If multiple items → parse and log each separately
+   - If food is from dining hall -> use search_menu_minimal or log_food_item
+   - If food is external (Ferrero Rocher, Starbucks, etc.) -> use your built-in knowledge to estimate
+   - If portion unclear -> ask "how much approximately?"
+   - If multiple items -> parse and log each separately
 
 5. PROACTIVE SUGGESTIONS:
-   - If user is 500+ cal under target late in day → suggest snack
-   - If user hasn't logged lunch by 1 PM → gentle reminder
-   - If protein is low → suggest protein-rich options
+   - If user is 500+ cal under target late in day -> suggest snack
+   - If user hasn't logged lunch by 1 PM -> gentle reminder
+   - If protein is low -> suggest protein-rich options
 
 CONVERSATION FLOW EXAMPLES:
 
@@ -228,7 +311,7 @@ You think: User ate breakfast, need to log these items
 You call: log_food_item for eggs (3 eggs, breakfast)
 You call: log_food_item for toast (2 slices, breakfast)
 You call: get_daily_progress to show updated totals
-You respond: "✅ Logged from your plan:
+You respond: "Logged from your plan:
 - 3 eggs - 210 cal, 18g protein
 - 2 slices toast - 160 cal, 8g protein
 
@@ -241,8 +324,8 @@ You think: External food, I know this! Each piece ~73 cal
 You respond: "How many pieces did you eat?"
 User: "like 3"
 You call: log_food_item("Ferrero Rocher", "3 pieces", "snack", 219, 3, 26, 13, False, True)
-You respond: "✅ Logged:
-➕ Ferrero Rocher - 3 pieces (219 cal, 3g protein)
+You respond: "Logged:
++ Ferrero Rocher - 3 pieces (219 cal, 3g protein)
 
 Updated: 1739/2800 cal, 82/150g protein"
 
@@ -259,8 +342,8 @@ Which sounds good?"
 
 Example 4: Profile Update
 User: "my weight is 170 now"
-You call: update_user_profile(phone_number, {"weight": 170})
-You respond: "Updated your weight to 170 lbs! 💪 Your calorie target is now 2850 (recalculated). Want me to regenerate today's meal plan?"
+You call: update_user_profile(phone_number, {{"weight":170}})
+You respond: "Updated your weight to 170 lbs! Your calorie target is now 2850 (recalculated). Want me to regenerate today's meal plan?"
 
 AVAILABLE FUNCTIONS:
 You have access to these functions - use them intelligently:
@@ -418,13 +501,22 @@ Current meal context: {current_meal}
                     else:
                         result = {"error": f"Unknown function: {function_name}"}
 
+                    # Safe JSON serialization - handle date objects and other non-serializable types
+                    try:
+                        json_result = json.dumps(result, default=str)
+                    except (TypeError, ValueError) as json_err:
+                        print(f"JSON serialization error for {function_name}: {json_err}")
+                        json_result = json.dumps({"error": "Could not serialize result", "raw": str(result)})
+
                     results.append({
                         "type": "tool_result",
                         "tool_use_id": tool_use_id,
-                        "content": json.dumps(result)
+                        "content": json_result
                     })
                 except Exception as e:
+                    import traceback
                     print(f"Error executing {function_name}: {e}")
+                    traceback.print_exc()
                     results.append({
                         "type": "tool_result",
                         "tool_use_id": tool_use_id,
@@ -466,8 +558,33 @@ Current meal context: {current_meal}
 
         if result.data:
             context_data = result.data[0].get('context_data', {})
+            history = context_data.get('conversation_history', [])
+
+            # Convert stored dictionaries back to proper format for anthropic
+            converted_history = []
+            for msg in history:
+                if isinstance(msg, dict) and 'content' in msg:
+                    content = msg['content']
+
+                    # If content is a list of dicts (complex content like tool calls)
+                    if isinstance(content, list):
+                        # For assistant messages with tool_use blocks, keep as-is
+                        # The dicts are already in the correct format
+                        converted_history.append(msg)
+                    # If content is a string (simple text message)
+                    elif isinstance(content, str):
+                        converted_history.append(msg)
+                    else:
+                        # Fallback - convert to string
+                        converted_history.append({
+                            'role': msg['role'],
+                            'content': str(content)
+                        })
+                else:
+                    converted_history.append(msg)
+
             return {
-                'history': context_data.get('conversation_history', []),
+                'history': converted_history,
                 'current_phase': result.data[0].get('current_phase'),
                 'context': context_data
             }
@@ -488,8 +605,64 @@ Current meal context: {current_meal}
 
     async def save_conversation_state(self, phone_number: str, messages: List, last_response: str):
         """Save conversation state to database"""
+        import json
+
+        # Convert messages to JSON-serializable format
+        serializable_messages = []
+        for msg in messages:
+            content = msg.get('content')
+
+            if isinstance(content, list):
+                # Handle list of content blocks (new anthropic format)
+                serializable_content = []
+
+                for block in content:
+                    # Check if it's a TextBlock object
+                    if hasattr(block, 'type'):
+                        block_type = getattr(block, 'type', None)
+
+                        # If it's a tool_use block, we need to preserve it
+                        if block_type == 'tool_use':
+                            if hasattr(block, 'model_dump'):
+                                serializable_content.append(block.model_dump())
+                            elif hasattr(block, 'dict'):
+                                serializable_content.append(block.dict())
+                            else:
+                                serializable_content.append({'type': 'tool_use', 'id': block.id, 'name': block.name, 'input': block.input})
+
+                        # If it's a text block, extract just the text string
+                        elif block_type == 'text':
+                            if hasattr(block, 'text'):
+                                serializable_content.append({'type': 'text', 'text': block.text})
+                            else:
+                                serializable_content.append(str(block))
+                        else:
+                            # Unknown block type, serialize it
+                            if hasattr(block, 'model_dump'):
+                                serializable_content.append(block.model_dump())
+                            elif hasattr(block, 'dict'):
+                                serializable_content.append(block.dict())
+                            else:
+                                serializable_content.append(str(block))
+
+                    # If it's already a dict (from database), keep it
+                    elif isinstance(block, dict):
+                        serializable_content.append(block)
+                    else:
+                        serializable_content.append(str(block))
+
+                # ALWAYS keep as list to preserve message structure
+                # This is critical for maintaining tool_use/tool_result pairing
+                serializable_messages.append({
+                    'role': msg['role'],
+                    'content': serializable_content
+                })
+            else:
+                # Content is already a string, keep it as-is
+                serializable_messages.append(msg)
+
         context_data = {
-            'conversation_history': messages,
+            'conversation_history': serializable_messages,
             'last_response': last_response,
             'last_interaction': datetime.now().isoformat()
         }

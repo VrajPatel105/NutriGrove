@@ -69,12 +69,21 @@ class AnalyticsService:
         if not summaries.data:
             return {'error': 'No data for this week'}
 
+        # Safe numeric helper
+        def safe_num(value, default=0):
+            try:
+                if value is None:
+                    return default
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
         # Calculate weekly averages
         days_logged = len(summaries.data)
-        total_calories = sum(s['actual_calories'] or 0 for s in summaries.data)
-        total_protein = sum(s['actual_protein'] or 0 for s in summaries.data)
-        total_carbs = sum(s['actual_carbs'] or 0 for s in summaries.data)
-        total_fat = sum(s['actual_fat'] or 0 for s in summaries.data)
+        total_calories = sum(safe_num(s.get('actual_calories')) for s in summaries.data)
+        total_protein = sum(safe_num(s.get('actual_protein')) for s in summaries.data)
+        total_carbs = sum(safe_num(s.get('actual_carbs')) for s in summaries.data)
+        total_fat = sum(safe_num(s.get('actual_fat')) for s in summaries.data)
 
         avg_calories = total_calories / days_logged if days_logged > 0 else 0
         avg_protein = total_protein / days_logged if days_logged > 0 else 0
@@ -82,7 +91,7 @@ class AnalyticsService:
         avg_fat = total_fat / days_logged if days_logged > 0 else 0
 
         # Calculate adherence
-        total_adherence = sum(s['adherence_score'] or 0 for s in summaries.data)
+        total_adherence = sum(safe_num(s.get('adherence_score')) for s in summaries.data)
         avg_adherence = total_adherence / days_logged if days_logged > 0 else 0
 
         # Get targets

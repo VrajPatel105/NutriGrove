@@ -87,9 +87,28 @@ class WhatsAppHandler:
             print(f"Error sending WhatsApp: {e}")
             return False
 
+    def strip_emojis(self, text: str) -> str:
+        """
+        Remove emojis from text to avoid TwiML encoding issues
+        Twilio's WhatsApp TwiML responses don't handle emojis well
+        """
+        import re
+        # Remove emojis using regex
+        emoji_pattern = re.compile(
+            "["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U00002702-\U000027B0"
+            u"\U000024C2-\U0001F251"
+            "]+", flags=re.UNICODE)
+        return emoji_pattern.sub('', text)
+
     def create_twiml_response(self, message: str) -> str:
         """
         Create TwiML response for Twilio webhook
+        Splits long messages into chunks (WhatsApp has 1600 char limit)
 
         Args:
             message: Response text
@@ -97,6 +116,34 @@ class WhatsAppHandler:
         Returns:
             XML TwiML response
         """
+        # Strip emojis to avoid TwiML encoding issues
+        message = self.strip_emojis(message)
+
         response = MessagingResponse()
-        response.message(message)
+
+        # WhatsApp has a 1600 character limit per message
+        MAX_LENGTH = 1500  # Leave some buffer
+
+        if len(message) <= MAX_LENGTH:
+            response.message(message)
+        else:
+            # Split into chunks
+            chunks = []
+            current_chunk = ""
+
+            for line in message.split('\n'):
+                if len(current_chunk) + len(line) + 1 <= MAX_LENGTH:
+                    current_chunk += line + '\n'
+                else:
+                    if current_chunk:
+                        chunks.append(current_chunk.strip())
+                    current_chunk = line + '\n'
+
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+
+            # Add each chunk as a separate message
+            for chunk in chunks:
+                response.message(chunk)
+
         return str(response)

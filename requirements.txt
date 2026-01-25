@@ -99,14 +99,16 @@ xlsxwriter==3.2.5
 pytest==8.1.1
 pytest-asyncio==0.23.6
 pytest-cov==5.0.0
-httpx==0.28.1
 # ============================================
 # NEW DEPENDENCIES FOR WHATSAPP NUTRITION COACH
 # ============================================
 # Add these to your existing requirements.txt
 
-# Anthropic Claude API
-anthropic==0.39.0
+# Anthropic Claude API (latest version for Claude 3.5 Sonnet support)
+anthropic>=0.40.0
+
+# HTTP client
+httpx>=0.23.0
 
 # Twilio WhatsApp Integration
 twilio==9.3.7
@@ -124,8 +126,7 @@ APScheduler==3.11.0
 pytz==2025.2
 tzlocal==5.2
 
-# HTTP client (for external APIs)
-httpx==0.28.1
+# Async HTTP client (for external APIs)
 aiohttp==3.11.11
 
 # Date/Time parsing

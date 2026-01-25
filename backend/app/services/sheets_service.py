@@ -4,6 +4,7 @@ Syncs food logs to Google Sheets for daily tracking and analysis
 """
 
 import os
+import json
 from datetime import datetime, date
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
@@ -174,13 +175,22 @@ class SheetsService:
         if not summaries.data:
             return False
 
+        # Safe numeric helper
+        def safe_num(value, default=0):
+            try:
+                if value is None:
+                    return default
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
         # Calculate weekly averages
         total_days = len(summaries.data)
-        avg_calories = sum(s['actual_calories'] or 0 for s in summaries.data) / total_days
-        avg_protein = sum(s['actual_protein'] or 0 for s in summaries.data) / total_days
-        avg_carbs = sum(s['actual_carbs'] or 0 for s in summaries.data) / total_days
-        avg_fat = sum(s['actual_fat'] or 0 for s in summaries.data) / total_days
-        avg_adherence = sum(s['adherence_score'] or 0 for s in summaries.data) / total_days
+        avg_calories = sum(safe_num(s.get('actual_calories')) for s in summaries.data) / total_days if total_days > 0 else 0
+        avg_protein = sum(safe_num(s.get('actual_protein')) for s in summaries.data) / total_days if total_days > 0 else 0
+        avg_carbs = sum(safe_num(s.get('actual_carbs')) for s in summaries.data) / total_days if total_days > 0 else 0
+        avg_fat = sum(safe_num(s.get('actual_fat')) for s in summaries.data) / total_days if total_days > 0 else 0
+        avg_adherence = sum(safe_num(s.get('adherence_score')) for s in summaries.data) / total_days if total_days > 0 else 0
 
         # Get most eaten foods
         logs = self.supabase.table('food_logs')\

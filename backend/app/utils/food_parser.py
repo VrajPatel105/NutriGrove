@@ -76,7 +76,10 @@ class FoodParser:
                     # Extract quantity if it's numeric
                     qty_match = re.search(r'(\d+(?:\.\d+)?)', portion_match)
                     if qty_match:
-                        quantity = float(qty_match.group(1))
+                        try:
+                            quantity = float(qty_match.group(1))
+                        except (ValueError, TypeError):
+                            quantity = None
                     break
 
             # Extract food name (everything after portion, or whole part if no portion)

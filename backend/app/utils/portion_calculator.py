@@ -64,7 +64,14 @@ class PortionCalculator:
             >>> PortionCalculator.extract_quantity("half cup")
             0.5
         """
-        portion_str = portion_str.lower().strip()
+        # Handle None or empty strings
+        if not portion_str:
+            return 1.0
+
+        try:
+            portion_str = str(portion_str).lower().strip()
+        except (ValueError, TypeError):
+            return 1.0
 
         # Handle fractions written as words
         fraction_map = {
@@ -92,9 +99,12 @@ class PortionCalculator:
             return 1.0
 
         # Extract first number (handles "3", "1.5", etc.)
-        match = re.search(r'(\d+(?:\.\d+)?)', portion_str)
-        if match:
-            return float(match.group(1))
+        try:
+            match = re.search(r'(\d+(?:\.\d+)?)', portion_str)
+            if match:
+                return float(match.group(1))
+        except (ValueError, TypeError):
+            pass
 
         # Default to 1 if no number found
         return 1.0
@@ -132,13 +142,25 @@ class PortionCalculator:
             target_qty = PortionCalculator.extract_quantity(target_portion)
             multiplier = target_qty / base_qty if base_qty > 0 else 1.0
 
+        # Safe numeric conversion helper
+        def safe_num(value, default=0):
+            try:
+                if value is None:
+                    return default
+                if isinstance(value, str):
+                    value = value.replace('<', '').replace('trace', '0').strip()
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
         # Scale all nutrition values
         scaled = {}
         for key, value in base_nutrition.items():
-            if value is not None and isinstance(value, (int, float)):
-                scaled[key] = round(value * multiplier, 2)
+            numeric_value = safe_num(value)
+            if numeric_value != 0:  # Only scale if we got a valid number
+                scaled[key] = round(numeric_value * multiplier, 2)
             else:
-                scaled[key] = value
+                scaled[key] = 0
 
         return scaled
 

@@ -73,12 +73,21 @@ class FoodLogger:
                     portion
                 )
 
-                calories = int(scaled['calories'])
-                protein_g = scaled['protein_g']
-                carbs_g = scaled['carbs_g']
-                fat_g = scaled['fat_g']
-                fiber_g = scaled.get('fiber_g', 0)
-                sodium_mg = scaled.get('sodium_mg', 0)
+                # Safe conversion helper
+                def safe_float(value, default=0):
+                    try:
+                        if value is None:
+                            return default
+                        return float(value)
+                    except (ValueError, TypeError):
+                        return default
+
+                calories = int(safe_float(scaled.get('calories')))
+                protein_g = safe_float(scaled.get('protein_g'))
+                carbs_g = safe_float(scaled.get('carbs_g'))
+                fat_g = safe_float(scaled.get('fat_g'))
+                fiber_g = safe_float(scaled.get('fiber_g'))
+                sodium_mg = safe_float(scaled.get('sodium_mg'))
                 is_external = False
             else:
                 # External food - mark for AI estimation
@@ -137,12 +146,21 @@ class FoodLogger:
             .eq('date', target_date)\
             .execute()
 
+        # Safe numeric helper
+        def safe_num(value, default=0):
+            try:
+                if value is None:
+                    return default
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
         # Calculate totals
-        actual_calories = sum(log['calories'] or 0 for log in logs.data)
-        actual_protein = sum(log['protein_g'] or 0 for log in logs.data)
-        actual_carbs = sum(log['carbs_g'] or 0 for log in logs.data)
-        actual_fat = sum(log['fat_g'] or 0 for log in logs.data)
-        actual_fiber = sum(log['fiber_g'] or 0 for log in logs.data)
+        actual_calories = sum(safe_num(log.get('calories')) for log in logs.data)
+        actual_protein = sum(safe_num(log.get('protein_g')) for log in logs.data)
+        actual_carbs = sum(safe_num(log.get('carbs_g')) for log in logs.data)
+        actual_fat = sum(safe_num(log.get('fat_g')) for log in logs.data)
+        actual_fiber = sum(safe_num(log.get('fiber_g')) for log in logs.data)
 
         # Get user profile for targets
         profile_result = self.supabase.table('user_profiles')\

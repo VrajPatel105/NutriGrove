@@ -81,20 +81,38 @@ class NutritionEstimator:
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, headers=headers, json=data, timeout=10.0)
                 response.raise_for_status()
-                result = response.json()
 
-            if result.get('foods'):
+                # Safe JSON parsing
+                try:
+                    result = response.json()
+                except (ValueError, TypeError) as json_err:
+                    print(f"Nutritionix JSON parse error: {json_err}")
+                    return None
+
+            if result and result.get('foods'):
                 food = result['foods'][0]
+
+                # Safe numeric conversion helper
+                def safe_float(value, default=0):
+                    try:
+                        if value is None:
+                            return default
+                        if isinstance(value, str):
+                            value = value.replace('<', '').replace('trace', '0').strip()
+                        return float(value)
+                    except (ValueError, TypeError):
+                        return default
+
                 return {
                     'food_name': food['food_name'],
                     'portion': f"{food['serving_qty']} {food['serving_unit']}",
-                    'calories': int(food['nf_calories']),
-                    'protein_g': round(food['nf_protein'], 1),
-                    'carbs_g': round(food['nf_total_carbohydrate'], 1),
-                    'fat_g': round(food['nf_total_fat'], 1),
-                    'fiber_g': round(food.get('nf_dietary_fiber', 0), 1),
-                    'sugar_g': round(food.get('nf_sugars', 0), 1),
-                    'sodium_mg': round(food.get('nf_sodium', 0), 1),
+                    'calories': int(safe_float(food.get('nf_calories', 0))),
+                    'protein_g': round(safe_float(food.get('nf_protein', 0)), 1),
+                    'carbs_g': round(safe_float(food.get('nf_total_carbohydrate', 0)), 1),
+                    'fat_g': round(safe_float(food.get('nf_total_fat', 0)), 1),
+                    'fiber_g': round(safe_float(food.get('nf_dietary_fiber', 0)), 1),
+                    'sugar_g': round(safe_float(food.get('nf_sugars', 0)), 1),
+                    'sodium_mg': round(safe_float(food.get('nf_sodium', 0)), 1),
                     'confidence': 'high'
                 }
         except Exception as e:
@@ -124,22 +142,39 @@ class NutritionEstimator:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, params=params, timeout=10.0)
                 response.raise_for_status()
-                result = response.json()
 
-            if result.get('foods'):
+                # Safe JSON parsing
+                try:
+                    result = response.json()
+                except (ValueError, TypeError) as json_err:
+                    print(f"USDA JSON parse error: {json_err}")
+                    return None
+
+            if result and result.get('foods'):
                 food = result['foods'][0]
                 nutrients = {n['nutrientName']: n['value'] for n in food.get('foodNutrients', [])}
+
+                # Safe numeric conversion helper
+                def safe_float(value, default=0):
+                    try:
+                        if value is None:
+                            return default
+                        if isinstance(value, str):
+                            value = value.replace('<', '').replace('trace', '0').strip()
+                        return float(value)
+                    except (ValueError, TypeError):
+                        return default
 
                 return {
                     'food_name': food['description'],
                     'portion': '100g',  # USDA uses 100g as base
-                    'calories': int(nutrients.get('Energy', 0)),
-                    'protein_g': round(nutrients.get('Protein', 0), 1),
-                    'carbs_g': round(nutrients.get('Carbohydrate, by difference', 0), 1),
-                    'fat_g': round(nutrients.get('Total lipid (fat)', 0), 1),
-                    'fiber_g': round(nutrients.get('Fiber, total dietary', 0), 1),
-                    'sugar_g': round(nutrients.get('Sugars, total including NLEA', 0), 1),
-                    'sodium_mg': round(nutrients.get('Sodium, Na', 0), 1),
+                    'calories': int(safe_float(nutrients.get('Energy', 0))),
+                    'protein_g': round(safe_float(nutrients.get('Protein', 0)), 1),
+                    'carbs_g': round(safe_float(nutrients.get('Carbohydrate, by difference', 0)), 1),
+                    'fat_g': round(safe_float(nutrients.get('Total lipid (fat)', 0)), 1),
+                    'fiber_g': round(safe_float(nutrients.get('Fiber, total dietary', 0)), 1),
+                    'sugar_g': round(safe_float(nutrients.get('Sugars, total including NLEA', 0)), 1),
+                    'sodium_mg': round(safe_float(nutrients.get('Sodium, Na', 0)), 1),
                     'confidence': 'medium'
                 }
         except Exception as e:

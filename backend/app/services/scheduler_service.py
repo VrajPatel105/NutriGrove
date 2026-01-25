@@ -236,36 +236,45 @@ class SchedulerService:
 
         msg = f"🌅 Good morning! Here's your meal plan for today:\n\n"
 
+        # Safe value getter
+        def safe_val(value, default='N/A'):
+            try:
+                if value is None:
+                    return default
+                return value
+            except:
+                return default
+
         # Breakfast
         if 'breakfast' in meal_plan and meal_plan['breakfast']:
             msg += "🍳 BREAKFAST\n"
             for food in meal_plan['breakfast']:
-                msg += f"• {food.get('name')} - {food.get('recommended_portion')}\n"
-                msg += f"  {food.get('calories')}cal, {food.get('protein_g')}g protein\n"
+                msg += f"• {safe_val(food.get('name'))} - {safe_val(food.get('recommended_portion'))}\n"
+                msg += f"  {safe_val(food.get('calories'))}cal, {safe_val(food.get('protein_g'))}g protein\n"
             msg += "\n"
 
         # Lunch
         if 'lunch' in meal_plan and meal_plan['lunch']:
             msg += "🥗 LUNCH\n"
             for food in meal_plan['lunch']:
-                msg += f"• {food.get('name')} - {food.get('recommended_portion')}\n"
-                msg += f"  {food.get('calories')}cal, {food.get('protein_g')}g protein\n"
+                msg += f"• {safe_val(food.get('name'))} - {safe_val(food.get('recommended_portion'))}\n"
+                msg += f"  {safe_val(food.get('calories'))}cal, {safe_val(food.get('protein_g'))}g protein\n"
             msg += "\n"
 
         # Dinner
         if 'dinner' in meal_plan and meal_plan['dinner']:
             msg += "🍽️ DINNER\n"
             for food in meal_plan['dinner']:
-                msg += f"• {food.get('name')} - {food.get('recommended_portion')}\n"
-                msg += f"  {food.get('calories')}cal, {food.get('protein_g')}g protein\n"
+                msg += f"• {safe_val(food.get('name'))} - {safe_val(food.get('recommended_portion'))}\n"
+                msg += f"  {safe_val(food.get('calories'))}cal, {safe_val(food.get('protein_g'))}g protein\n"
             msg += "\n"
 
         # Daily totals
         if 'daily_totals' in meal_plan:
             totals = meal_plan['daily_totals']
             msg += f"📊 DAILY TOTALS\n"
-            msg += f"• {totals.get('total_calories')}cal / {totals.get('calorie_target')}cal target\n"
-            msg += f"• {totals.get('total_protein_g')}g protein / {totals.get('protein_target')}g target\n\n"
+            msg += f"• {safe_val(totals.get('total_calories'))}cal / {safe_val(totals.get('calorie_target'))}cal target\n"
+            msg += f"• {safe_val(totals.get('total_protein_g'))}g protein / {safe_val(totals.get('protein_target'))}g target\n\n"
 
         msg += "Reply with any questions or to swap foods! 💬"
 

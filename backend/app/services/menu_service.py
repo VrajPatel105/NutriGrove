@@ -88,13 +88,27 @@ class MenuService:
             if station and food_data.get('station_name', '').lower() != station.lower():
                 continue
 
-            # Protein filter
-            food_protein = float(nutrition.get('protein_g', 0) or 0)
+            # Protein filter - handle '<1', 'trace', etc.
+            try:
+                protein_val = nutrition.get('protein_g', 0) or 0
+                if isinstance(protein_val, str):
+                    protein_val = protein_val.replace('<', '').replace('trace', '0').strip()
+                food_protein = float(protein_val)
+            except (ValueError, TypeError):
+                food_protein = 0
+
             if min_protein and food_protein < min_protein:
                 continue
 
-            # Calorie filter
-            food_calories = int(nutrition.get('calories', 0) or 0)
+            # Calorie filter - handle '<1', 'trace', etc.
+            try:
+                cal_val = nutrition.get('calories', 0) or 0
+                if isinstance(cal_val, str):
+                    cal_val = cal_val.replace('<', '').replace('trace', '0').strip()
+                food_calories = int(float(cal_val))
+            except (ValueError, TypeError):
+                food_calories = 0
+
             if max_calories and food_calories > max_calories:
                 continue
 
@@ -103,6 +117,17 @@ class MenuService:
             if exclude_allergens and any(allergen in food_allergens for allergen in exclude_allergens):
                 continue
 
+            # Safe conversion for carbs and fat
+            def safe_float(value, default=0):
+                try:
+                    if value is None:
+                        return default
+                    if isinstance(value, str):
+                        value = value.replace('<', '').replace('trace', '0').strip()
+                    return float(value)
+                except (ValueError, TypeError):
+                    return default
+
             # Add minimal item
             filtered_items.append({
                 "name": food_data.get('food_name', 'Unknown'),
@@ -110,8 +135,8 @@ class MenuService:
                 "meal_type": food_data.get('meal_type', 'Unknown'),
                 "calories": food_calories,
                 "protein_g": food_protein,
-                "carbs_g": float(nutrition.get('carbs_g', 0) or 0),
-                "fat_g": float(nutrition.get('fat_g', 0) or 0),
+                "carbs_g": safe_float(nutrition.get('carbs_g')),
+                "fat_g": safe_float(nutrition.get('fat_g')),
                 "allergens": food_allergens
             })
 
@@ -182,6 +207,17 @@ class MenuService:
             .select('data')\
             .execute()
 
+        # Safe numeric conversion
+        def safe_float(value, default=0):
+            try:
+                if value is None:
+                    return default
+                if isinstance(value, str):
+                    value = value.replace('<', '').replace('trace', '0').strip()
+                return float(value)
+            except (ValueError, TypeError):
+                return default
+
         # Search for food (case-insensitive partial match)
         for row in result.data:
             food_data = row.get('data', {})
@@ -190,12 +226,12 @@ class MenuService:
 
                 return {
                     "name": food_data.get('food_name'),
-                    "calories": int(nutrition.get('calories', 0) or 0),
-                    "protein_g": float(nutrition.get('protein_g', 0) or 0),
-                    "carbs_g": float(nutrition.get('carbs_g', 0) or 0),
-                    "fat_g": float(nutrition.get('fat_g', 0) or 0),
-                    "fiber_g": float(nutrition.get('fiber_g', 0) or 0),
-                    "sodium_mg": float(nutrition.get('sodium_mg', 0) or 0),
+                    "calories": int(safe_float(nutrition.get('calories'))),
+                    "protein_g": safe_float(nutrition.get('protein_g')),
+                    "carbs_g": safe_float(nutrition.get('carbs_g')),
+                    "fat_g": safe_float(nutrition.get('fat_g')),
+                    "fiber_g": safe_float(nutrition.get('fiber_g')),
+                    "sodium_mg": safe_float(nutrition.get('sodium_mg')),
                     "serving_size": nutrition.get('serving_size', '1 serving')
                 }
 

@@ -12,9 +12,9 @@ recommender = FoodRecommender()
 # Initialize WhatsApp handler with error handling
 try:
     whatsapp_handler = WhatsAppHandler()
-    print("✅ WhatsApp handler initialized")
+    print("[OK] WhatsApp handler initialized")
 except Exception as e:
-    print(f"⚠️  Warning: WhatsApp handler failed to initialize: {e}")
+    print(f"[WARNING] WhatsApp handler failed to initialize: {e}")
     whatsapp_handler = None
 
 app = FastAPI()
@@ -29,9 +29,9 @@ async def startup_event():
     try:
         scheduler = SchedulerService()
         scheduler.start()
-        print("✅ Scheduler service started!")
+        print("[OK] Scheduler service started!")
     except Exception as e:
-        print(f"⚠️  Warning: Scheduler failed to start: {e}")
+        print(f"[WARNING] Scheduler failed to start: {e}")
         print("Server will continue without scheduled jobs.")
 
 @app.on_event("shutdown")
@@ -99,11 +99,18 @@ async def whatsapp_webhook(
         # Process message through WhatsApp handler
         response_text = await whatsapp_handler.handle_incoming_message(From, Body)
 
+        print(f"Response to {From}: {response_text}")
+
         # Create TwiML response
         twiml_response = whatsapp_handler.create_twiml_response(response_text)
 
-        # Return as plain text XML
-        return Response(content=twiml_response, media_type="application/xml")
+        print(f"TwiML Response: {twiml_response}")
+
+        # Return as UTF-8 encoded XML
+        return Response(
+            content=twiml_response,
+            media_type="application/xml; charset=utf-8"
+        )
 
     except Exception as e:
         print(f"Error processing WhatsApp message: {e}")
